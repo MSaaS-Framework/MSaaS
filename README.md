@@ -1,7 +1,13 @@
 ![Microservice_as_a_Service_Logo_1280x320_Final](https://github.com/user-attachments/assets/4fddafeb-568b-49b0-a75b-cf2d2dc3d795)
 
+| 한국어 | [English](https://github.com/Larshavin/MSaaS/blob/main/README-EN.md) |
+
+---
+
 # MSaaS
 Microservice as a Service
+
+---
 
 ## Project Goals
 
@@ -16,6 +22,8 @@ Microservice as a Service
 3. 클라우드 환경을 쉽게 커스텀 할 수 있어야 합니다.
 4. 위의 요구 사항을 관리할 수 있는 통합 UI가 존재합니다.
 
+---
+
 ## Status
 
 ### Phase 1 - 단일 서버의 로컬 환경으로 MSA 구조 개발하기 (개발 구상 중)
@@ -25,9 +33,13 @@ Microservice as a Service
 
 ### Phase 3 - 클라우드 환경 쉽게 커스텀 하기 (개발 예정)
 
+---
+
 ## How to Start
 
 TBA
+
+---
 
 ## Contribute
 
