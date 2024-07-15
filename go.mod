@@ -1,4 +1,4 @@
-module Larshavin/MSaaS
+module MSaaS-Framework/MSaaS
 
 go 1.22.1
 
