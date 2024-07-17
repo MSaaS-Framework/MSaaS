@@ -1,4 +1,4 @@
-![Microservice_as_a_Service_Logo_1280x320_Final](https://github.com/user-attachments/assets/4fddafeb-568b-49b0-a75b-cf2d2dc3d795)
+<p align="center"><img src="https://github.com/user-attachments/assets/6800b983-11c0-4509-a5e2-4dbc08248e21" height="300px" width="300px" ></p>
 
 | 한국어 | [English](https://github.com/MSaaS-Framework/MSaaS/blob/main/README-EN.md) |
 
