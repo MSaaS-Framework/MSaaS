@@ -38,17 +38,23 @@ func newStartCommand() *cobra.Command {
 
 // StartServer는 웹 서버를 시작하는 함수입니다.
 func StartServer() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Welcome to Wizcraft API Server")
-	})
 
-	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "OK")
-	})
+	RegisterRoutes()
 
-	log.Println("Server is running on port 8080")
+	// 등록된 모든 핸들러 적용
+	for _, handler := range HttpHandlers {
+		// 모든 메서드를 처리하되, 핸들러 내에서 메서드 구분
+		http.HandleFunc(handler.Path, func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == handler.Method {
+				handler.Function(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		})
+	}
+
+	log.Println("서버가 8080 포트에서 실행 중입니다.")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatalf("Server failed to start: %v", err)
+		log.Fatalf("서버 시작 실패: %v", err)
 	}
 }
