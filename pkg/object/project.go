@@ -5,7 +5,7 @@ import (
 )
 
 type Project struct {
-	General   *Spec
+	General   *GeneralSpec
 	Services  map[string]uuid.UUID
 	Databases map[string]uuid.UUID
 	APIs      map[string]uuid.UUID

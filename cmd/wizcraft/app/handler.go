@@ -1,7 +1,10 @@
 package app
 
 import (
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/handlers"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 // HttpHandlers는 여러 핸들러를 관리하는 슬라이스입니다.
@@ -14,19 +17,21 @@ type HttpHandler struct {
 	Function func(w http.ResponseWriter, r *http.Request)
 }
 
-// 등록할 핸들러를 추가하는 함수 예시
-func RegisterRoutes() {
-	// 예시로 healthz 엔드포인트 등록
-	HttpHandlers = append(HttpHandlers, HttpHandler{
-		Method:   "GET",
-		Path:     "/healthz",
-		Function: HealthzHandler,
+func defaultRoutes(router *gin.Engine) {
+	// 기본 경로 등록
+	router.GET("/", func(c *gin.Context) {
+		c.String(http.StatusOK, "Wizcraft API 서버에 오신 것을 환영합니다.")
 	})
 
-	// 또 다른 예시 핸들러 등록 가능
-	HttpHandlers = append(HttpHandlers, HttpHandler{
-		Method:   "GET",
-		Path:     "/",
-		Function: RootHandler,
+	router.GET("/healthz", func(c *gin.Context) {
+		c.String(http.StatusOK, "Hello World")
 	})
+}
+
+// 등록할 핸들러를 추가하는 함수 예시
+func RegisterRoutes(router *gin.Engine) {
+	// 기본 경로 등록
+	defaultRoutes(router)
+	// 핸들러 등록
+	handlers.RegisterProjectRoutes(router)
 }
