@@ -34,4 +34,7 @@ func RegisterRoutes(router *gin.Engine) {
 	defaultRoutes(router)
 	// 핸들러 등록
 	handlers.RegisterProjectRoutes(router)
+	handlers.RegisterAPIRoutes(router)
+	handlers.RegisterDatabaseRoutes(router)
+	handlers.RegisterServiceRoutes(router)
 }
