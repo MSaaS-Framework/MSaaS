@@ -1,24 +1,38 @@
 version: '3'
 services:
-  wizcraft:
-    build:
-      context: ./cmd/wizcraft
-      dockerfile: Dockerfile
-    networks:
-      - msaas_network
-    ports:
-      - "8080:8080" # 필요한 경우 포트를 노출합니다.
-
   postgresql:
     image: postgres:latest
     environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: admin123
-      POSTGRES_DB: msaas
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     networks:
       - msaas_network
     ports:
-      - "5432:5432" # PostgreSQL의 기본 포트를 노출합니다.
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U root" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  wizcraft:
+    build:
+      context: .
+      dockerfile: ./cmd/wizcraft/Dockerfile
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: postgresql
+      POSTGRES_PORT: ${POSTGRES_PORT}
+    networks:
+      - msaas_network
+    ports:
+      - "${WIZCRAFT_PORT}:${WIZCRAFT_PORT}"
 
 networks:
   msaas_network:

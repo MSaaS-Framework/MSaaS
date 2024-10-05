@@ -1,13 +1,27 @@
 package app
 
 import (
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent"
 	"MSaaS-Framework/MSaaS/pkg/crub"
+	"context"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
+
+	_ "github.com/lib/pq"
 )
+
+func init() {
+	// .env 파일 로드
+	if err := godotenv.Load("../../.env"); err != nil {
+		log.Println(".env 파일을 로드할 수 없습니다. 기본 환경 변수를 사용합니다.")
+	}
+	fmt.Println("환경 변수 로드 완료")
+}
 
 // NewWizcraftCommand는 루트 명령어를 생성합니다.
 func NewWizcraftCommand() *cobra.Command {
@@ -70,6 +84,31 @@ func newCrudCommand() *cobra.Command {
 // StartServer는 웹 서버를 시작하는 함수입니다.
 func StartServer() {
 
+	// 환경 변수에서 설정값을 가져옵니다.
+	host := os.Getenv("POSTGRES_HOST")
+	dbPort := os.Getenv("POSTGRES_PORT")
+	user := os.Getenv("POSTGRES_USER")
+	dbname := os.Getenv("POSTGRES_DB")
+	password := os.Getenv("POSTGRES_PASSWORD")
+
+	println(host, dbPort, user, dbname, password)
+
+	// ent 초기화 - 추후에 env를 사용하여 데이터를 가져오도록 수정
+	// PostgreSQL 연결 문자열을 구성합니다.
+	postgresDSN := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+		host, dbPort, user, dbname, password)
+
+	// ent 초기화
+	client, err := ent.Open("postgres", postgresDSN)
+	if err != nil {
+		log.Fatalf("failed opening connection to postgres: %v", err)
+	}
+	defer client.Close()
+	// Run the auto migration tool.
+	if err := client.Schema.Create(context.Background()); err != nil {
+		log.Fatalf("failed creating schema resources: %v", err)
+	}
+
 	// Gin의 새로운 라우터 생성
 	router := gin.New()
 
@@ -81,8 +120,9 @@ func StartServer() {
 	RegisterRoutes(router)
 
 	// 웹 서버 시작
-	log.Println("서버가 8080 포트에서 실행 중입니다.")
-	if err := router.Run(":8080"); err != nil {
+	webPort := os.Getenv("WIZCRAFT_PORT")
+	log.Printf("서버가 포트 %s에서 실행 중입니다.", webPort)
+	if err := router.Run(":" + webPort); err != nil {
 		log.Fatalf("서버 시작 실패: %v", err)
 	}
 }

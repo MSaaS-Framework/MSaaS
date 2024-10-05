@@ -17,7 +17,7 @@ COPY . .
 RUN go mod download
 
 # wizcraft 바이너리 빌드
-RUN go build -o wizcraft .
+RUN go build -o wizcraft ./cmd/wizcraft/wizcraft.go
 
 # 2단계: 실행 스테이지
 FROM scratch
