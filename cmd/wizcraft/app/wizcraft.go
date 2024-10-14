@@ -90,8 +90,9 @@ func StartServer() {
 	user := os.Getenv("POSTGRES_USER")
 	dbname := os.Getenv("POSTGRES_DB")
 	password := os.Getenv("POSTGRES_PASSWORD")
+	webPort := os.Getenv("WIZCRAFT_PORT")
 
-	println(host, dbPort, user, dbname, password)
+	println(host, dbPort, user, dbname, password, webPort)
 
 	// ent 초기화 - 추후에 env를 사용하여 데이터를 가져오도록 수정
 	// PostgreSQL 연결 문자열을 구성합니다.
@@ -120,8 +121,7 @@ func StartServer() {
 	RegisterRoutes(router)
 
 	// 웹 서버 시작
-	webPort := os.Getenv("WIZCRAFT_PORT")
-	log.Printf("서버가 포트 %s에서 실행 중입니다.", webPort)
+	log.Printf("반갑습니다. 서버가 포트 %s에서 실행 중입니다.", webPort)
 	if err := router.Run(":" + webPort); err != nil {
 		log.Fatalf("서버 시작 실패: %v", err)
 	}
