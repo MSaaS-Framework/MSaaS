@@ -1,0 +1,12 @@
+# Example of an Air config file
+
+# 프로젝트의 환경 설정을 반영하도록 수정
+root = "."
+tmp_dir = "tmp"
+[build]
+cmd = "go build -o tmp/main ./cmd/wizcraft"
+bin = "tmp/main"
+args_bin = ["start"]
+
+[log]
+level = "debug"
