@@ -49,6 +49,8 @@ type APISpecMutation struct {
 	clearedservice     bool
 	project            *uuid.UUID
 	clearedproject     bool
+	generalspec        *int
+	clearedgeneralspec bool
 	done               bool
 	oldValue           func(context.Context) (*APISpec, error)
 	predicates         []predicate.APISpec
@@ -287,6 +289,45 @@ func (m *APISpecMutation) ResetProject() {
 	m.clearedproject = false
 }
 
+// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by id.
+func (m *APISpecMutation) SetGeneralspecID(id int) {
+	m.generalspec = &id
+}
+
+// ClearGeneralspec clears the "generalspec" edge to the GeneralSpec entity.
+func (m *APISpecMutation) ClearGeneralspec() {
+	m.clearedgeneralspec = true
+}
+
+// GeneralspecCleared reports if the "generalspec" edge to the GeneralSpec entity was cleared.
+func (m *APISpecMutation) GeneralspecCleared() bool {
+	return m.clearedgeneralspec
+}
+
+// GeneralspecID returns the "generalspec" edge ID in the mutation.
+func (m *APISpecMutation) GeneralspecID() (id int, exists bool) {
+	if m.generalspec != nil {
+		return *m.generalspec, true
+	}
+	return
+}
+
+// GeneralspecIDs returns the "generalspec" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// GeneralspecID instead. It exists only for internal usage by the builders.
+func (m *APISpecMutation) GeneralspecIDs() (ids []int) {
+	if id := m.generalspec; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetGeneralspec resets all changes to the "generalspec" edge.
+func (m *APISpecMutation) ResetGeneralspec() {
+	m.generalspec = nil
+	m.clearedgeneralspec = false
+}
+
 // Where appends a list predicates to the APISpecMutation builder.
 func (m *APISpecMutation) Where(ps ...predicate.APISpec) {
 	m.predicates = append(m.predicates, ps...)
@@ -420,12 +461,15 @@ func (m *APISpecMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *APISpecMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.service != nil {
 		edges = append(edges, apispec.EdgeService)
 	}
 	if m.project != nil {
 		edges = append(edges, apispec.EdgeProject)
+	}
+	if m.generalspec != nil {
+		edges = append(edges, apispec.EdgeGeneralspec)
 	}
 	return edges
 }
@@ -442,13 +486,17 @@ func (m *APISpecMutation) AddedIDs(name string) []ent.Value {
 		if id := m.project; id != nil {
 			return []ent.Value{*id}
 		}
+	case apispec.EdgeGeneralspec:
+		if id := m.generalspec; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *APISpecMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	return edges
 }
 
@@ -460,12 +508,15 @@ func (m *APISpecMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *APISpecMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedservice {
 		edges = append(edges, apispec.EdgeService)
 	}
 	if m.clearedproject {
 		edges = append(edges, apispec.EdgeProject)
+	}
+	if m.clearedgeneralspec {
+		edges = append(edges, apispec.EdgeGeneralspec)
 	}
 	return edges
 }
@@ -478,6 +529,8 @@ func (m *APISpecMutation) EdgeCleared(name string) bool {
 		return m.clearedservice
 	case apispec.EdgeProject:
 		return m.clearedproject
+	case apispec.EdgeGeneralspec:
+		return m.clearedgeneralspec
 	}
 	return false
 }
@@ -491,6 +544,9 @@ func (m *APISpecMutation) ClearEdge(name string) error {
 		return nil
 	case apispec.EdgeProject:
 		m.ClearProject()
+		return nil
+	case apispec.EdgeGeneralspec:
+		m.ClearGeneralspec()
 		return nil
 	}
 	return fmt.Errorf("unknown APISpec unique edge %s", name)
@@ -506,6 +562,9 @@ func (m *APISpecMutation) ResetEdge(name string) error {
 	case apispec.EdgeProject:
 		m.ResetProject()
 		return nil
+	case apispec.EdgeGeneralspec:
+		m.ResetGeneralspec()
+		return nil
 	}
 	return fmt.Errorf("unknown APISpec edge %s", name)
 }
@@ -513,20 +572,22 @@ func (m *APISpecMutation) ResetEdge(name string) error {
 // DatabaseMutation represents an operation that mutates the Database nodes in the graph.
 type DatabaseMutation struct {
 	config
-	op              Op
-	typ             string
-	id              *uuid.UUID
-	connection_path *string
-	password        *string
-	db_type         *string
-	clearedFields   map[string]struct{}
-	service         *uuid.UUID
-	clearedservice  bool
-	project         *uuid.UUID
-	clearedproject  bool
-	done            bool
-	oldValue        func(context.Context) (*Database, error)
-	predicates      []predicate.Database
+	op                 Op
+	typ                string
+	id                 *uuid.UUID
+	connection_path    *string
+	password           *string
+	db_type            *string
+	clearedFields      map[string]struct{}
+	service            *uuid.UUID
+	clearedservice     bool
+	project            *uuid.UUID
+	clearedproject     bool
+	generalspec        *int
+	clearedgeneralspec bool
+	done               bool
+	oldValue           func(context.Context) (*Database, error)
+	predicates         []predicate.Database
 }
 
 var _ ent.Mutation = (*DatabaseMutation)(nil)
@@ -819,6 +880,45 @@ func (m *DatabaseMutation) ResetProject() {
 	m.clearedproject = false
 }
 
+// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by id.
+func (m *DatabaseMutation) SetGeneralspecID(id int) {
+	m.generalspec = &id
+}
+
+// ClearGeneralspec clears the "generalspec" edge to the GeneralSpec entity.
+func (m *DatabaseMutation) ClearGeneralspec() {
+	m.clearedgeneralspec = true
+}
+
+// GeneralspecCleared reports if the "generalspec" edge to the GeneralSpec entity was cleared.
+func (m *DatabaseMutation) GeneralspecCleared() bool {
+	return m.clearedgeneralspec
+}
+
+// GeneralspecID returns the "generalspec" edge ID in the mutation.
+func (m *DatabaseMutation) GeneralspecID() (id int, exists bool) {
+	if m.generalspec != nil {
+		return *m.generalspec, true
+	}
+	return
+}
+
+// GeneralspecIDs returns the "generalspec" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// GeneralspecID instead. It exists only for internal usage by the builders.
+func (m *DatabaseMutation) GeneralspecIDs() (ids []int) {
+	if id := m.generalspec; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetGeneralspec resets all changes to the "generalspec" edge.
+func (m *DatabaseMutation) ResetGeneralspec() {
+	m.generalspec = nil
+	m.clearedgeneralspec = false
+}
+
 // Where appends a list predicates to the DatabaseMutation builder.
 func (m *DatabaseMutation) Where(ps ...predicate.Database) {
 	m.predicates = append(m.predicates, ps...)
@@ -986,12 +1086,15 @@ func (m *DatabaseMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *DatabaseMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.service != nil {
 		edges = append(edges, database.EdgeService)
 	}
 	if m.project != nil {
 		edges = append(edges, database.EdgeProject)
+	}
+	if m.generalspec != nil {
+		edges = append(edges, database.EdgeGeneralspec)
 	}
 	return edges
 }
@@ -1008,13 +1111,17 @@ func (m *DatabaseMutation) AddedIDs(name string) []ent.Value {
 		if id := m.project; id != nil {
 			return []ent.Value{*id}
 		}
+	case database.EdgeGeneralspec:
+		if id := m.generalspec; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *DatabaseMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	return edges
 }
 
@@ -1026,12 +1133,15 @@ func (m *DatabaseMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *DatabaseMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedservice {
 		edges = append(edges, database.EdgeService)
 	}
 	if m.clearedproject {
 		edges = append(edges, database.EdgeProject)
+	}
+	if m.clearedgeneralspec {
+		edges = append(edges, database.EdgeGeneralspec)
 	}
 	return edges
 }
@@ -1044,6 +1154,8 @@ func (m *DatabaseMutation) EdgeCleared(name string) bool {
 		return m.clearedservice
 	case database.EdgeProject:
 		return m.clearedproject
+	case database.EdgeGeneralspec:
+		return m.clearedgeneralspec
 	}
 	return false
 }
@@ -1058,6 +1170,9 @@ func (m *DatabaseMutation) ClearEdge(name string) error {
 	case database.EdgeProject:
 		m.ClearProject()
 		return nil
+	case database.EdgeGeneralspec:
+		m.ClearGeneralspec()
+		return nil
 	}
 	return fmt.Errorf("unknown Database unique edge %s", name)
 }
@@ -1071,6 +1186,9 @@ func (m *DatabaseMutation) ResetEdge(name string) error {
 		return nil
 	case database.EdgeProject:
 		m.ResetProject()
+		return nil
+	case database.EdgeGeneralspec:
+		m.ResetGeneralspec()
 		return nil
 	}
 	return fmt.Errorf("unknown Database edge %s", name)
@@ -1865,22 +1983,24 @@ func (m *GeneralSpecMutation) ResetEdge(name string) error {
 // ProjectMutation represents an operation that mutates the Project nodes in the graph.
 type ProjectMutation struct {
 	config
-	op               Op
-	typ              string
-	id               *uuid.UUID
-	clearedFields    map[string]struct{}
-	services         map[uuid.UUID]struct{}
-	removedservices  map[uuid.UUID]struct{}
-	clearedservices  bool
-	databases        map[uuid.UUID]struct{}
-	removeddatabases map[uuid.UUID]struct{}
-	cleareddatabases bool
-	apispecs         map[uuid.UUID]struct{}
-	removedapispecs  map[uuid.UUID]struct{}
-	clearedapispecs  bool
-	done             bool
-	oldValue         func(context.Context) (*Project, error)
-	predicates       []predicate.Project
+	op                 Op
+	typ                string
+	id                 *uuid.UUID
+	clearedFields      map[string]struct{}
+	services           map[uuid.UUID]struct{}
+	removedservices    map[uuid.UUID]struct{}
+	clearedservices    bool
+	databases          map[uuid.UUID]struct{}
+	removeddatabases   map[uuid.UUID]struct{}
+	cleareddatabases   bool
+	apispecs           map[uuid.UUID]struct{}
+	removedapispecs    map[uuid.UUID]struct{}
+	clearedapispecs    bool
+	generalspec        *int
+	clearedgeneralspec bool
+	done               bool
+	oldValue           func(context.Context) (*Project, error)
+	predicates         []predicate.Project
 }
 
 var _ ent.Mutation = (*ProjectMutation)(nil)
@@ -2149,6 +2269,45 @@ func (m *ProjectMutation) ResetApispecs() {
 	m.removedapispecs = nil
 }
 
+// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by id.
+func (m *ProjectMutation) SetGeneralspecID(id int) {
+	m.generalspec = &id
+}
+
+// ClearGeneralspec clears the "generalspec" edge to the GeneralSpec entity.
+func (m *ProjectMutation) ClearGeneralspec() {
+	m.clearedgeneralspec = true
+}
+
+// GeneralspecCleared reports if the "generalspec" edge to the GeneralSpec entity was cleared.
+func (m *ProjectMutation) GeneralspecCleared() bool {
+	return m.clearedgeneralspec
+}
+
+// GeneralspecID returns the "generalspec" edge ID in the mutation.
+func (m *ProjectMutation) GeneralspecID() (id int, exists bool) {
+	if m.generalspec != nil {
+		return *m.generalspec, true
+	}
+	return
+}
+
+// GeneralspecIDs returns the "generalspec" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// GeneralspecID instead. It exists only for internal usage by the builders.
+func (m *ProjectMutation) GeneralspecIDs() (ids []int) {
+	if id := m.generalspec; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetGeneralspec resets all changes to the "generalspec" edge.
+func (m *ProjectMutation) ResetGeneralspec() {
+	m.generalspec = nil
+	m.clearedgeneralspec = false
+}
+
 // Where appends a list predicates to the ProjectMutation builder.
 func (m *ProjectMutation) Where(ps ...predicate.Project) {
 	m.predicates = append(m.predicates, ps...)
@@ -2257,7 +2416,7 @@ func (m *ProjectMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ProjectMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.services != nil {
 		edges = append(edges, project.EdgeServices)
 	}
@@ -2266,6 +2425,9 @@ func (m *ProjectMutation) AddedEdges() []string {
 	}
 	if m.apispecs != nil {
 		edges = append(edges, project.EdgeApispecs)
+	}
+	if m.generalspec != nil {
+		edges = append(edges, project.EdgeGeneralspec)
 	}
 	return edges
 }
@@ -2292,13 +2454,17 @@ func (m *ProjectMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case project.EdgeGeneralspec:
+		if id := m.generalspec; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ProjectMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.removedservices != nil {
 		edges = append(edges, project.EdgeServices)
 	}
@@ -2339,7 +2505,7 @@ func (m *ProjectMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ProjectMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedservices {
 		edges = append(edges, project.EdgeServices)
 	}
@@ -2348,6 +2514,9 @@ func (m *ProjectMutation) ClearedEdges() []string {
 	}
 	if m.clearedapispecs {
 		edges = append(edges, project.EdgeApispecs)
+	}
+	if m.clearedgeneralspec {
+		edges = append(edges, project.EdgeGeneralspec)
 	}
 	return edges
 }
@@ -2362,6 +2531,8 @@ func (m *ProjectMutation) EdgeCleared(name string) bool {
 		return m.cleareddatabases
 	case project.EdgeApispecs:
 		return m.clearedapispecs
+	case project.EdgeGeneralspec:
+		return m.clearedgeneralspec
 	}
 	return false
 }
@@ -2370,6 +2541,9 @@ func (m *ProjectMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *ProjectMutation) ClearEdge(name string) error {
 	switch name {
+	case project.EdgeGeneralspec:
+		m.ClearGeneralspec()
+		return nil
 	}
 	return fmt.Errorf("unknown Project unique edge %s", name)
 }
@@ -2387,6 +2561,9 @@ func (m *ProjectMutation) ResetEdge(name string) error {
 	case project.EdgeApispecs:
 		m.ResetApispecs()
 		return nil
+	case project.EdgeGeneralspec:
+		m.ResetGeneralspec()
+		return nil
 	}
 	return fmt.Errorf("unknown Project edge %s", name)
 }
@@ -2394,18 +2571,20 @@ func (m *ProjectMutation) ResetEdge(name string) error {
 // ServiceMutation represents an operation that mutates the Service nodes in the graph.
 type ServiceMutation struct {
 	config
-	op               Op
-	typ              string
-	id               *uuid.UUID
-	clearedFields    map[string]struct{}
-	databases        map[uuid.UUID]struct{}
-	removeddatabases map[uuid.UUID]struct{}
-	cleareddatabases bool
-	apispec          *uuid.UUID
-	clearedapispec   bool
-	done             bool
-	oldValue         func(context.Context) (*Service, error)
-	predicates       []predicate.Service
+	op                 Op
+	typ                string
+	id                 *uuid.UUID
+	clearedFields      map[string]struct{}
+	databases          map[uuid.UUID]struct{}
+	removeddatabases   map[uuid.UUID]struct{}
+	cleareddatabases   bool
+	apispec            *uuid.UUID
+	clearedapispec     bool
+	generalspec        *int
+	clearedgeneralspec bool
+	done               bool
+	oldValue           func(context.Context) (*Service, error)
+	predicates         []predicate.Service
 }
 
 var _ ent.Mutation = (*ServiceMutation)(nil)
@@ -2605,6 +2784,45 @@ func (m *ServiceMutation) ResetApispec() {
 	m.clearedapispec = false
 }
 
+// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by id.
+func (m *ServiceMutation) SetGeneralspecID(id int) {
+	m.generalspec = &id
+}
+
+// ClearGeneralspec clears the "generalspec" edge to the GeneralSpec entity.
+func (m *ServiceMutation) ClearGeneralspec() {
+	m.clearedgeneralspec = true
+}
+
+// GeneralspecCleared reports if the "generalspec" edge to the GeneralSpec entity was cleared.
+func (m *ServiceMutation) GeneralspecCleared() bool {
+	return m.clearedgeneralspec
+}
+
+// GeneralspecID returns the "generalspec" edge ID in the mutation.
+func (m *ServiceMutation) GeneralspecID() (id int, exists bool) {
+	if m.generalspec != nil {
+		return *m.generalspec, true
+	}
+	return
+}
+
+// GeneralspecIDs returns the "generalspec" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// GeneralspecID instead. It exists only for internal usage by the builders.
+func (m *ServiceMutation) GeneralspecIDs() (ids []int) {
+	if id := m.generalspec; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetGeneralspec resets all changes to the "generalspec" edge.
+func (m *ServiceMutation) ResetGeneralspec() {
+	m.generalspec = nil
+	m.clearedgeneralspec = false
+}
+
 // Where appends a list predicates to the ServiceMutation builder.
 func (m *ServiceMutation) Where(ps ...predicate.Service) {
 	m.predicates = append(m.predicates, ps...)
@@ -2713,12 +2931,15 @@ func (m *ServiceMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ServiceMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.databases != nil {
 		edges = append(edges, service.EdgeDatabases)
 	}
 	if m.apispec != nil {
 		edges = append(edges, service.EdgeApispec)
+	}
+	if m.generalspec != nil {
+		edges = append(edges, service.EdgeGeneralspec)
 	}
 	return edges
 }
@@ -2737,13 +2958,17 @@ func (m *ServiceMutation) AddedIDs(name string) []ent.Value {
 		if id := m.apispec; id != nil {
 			return []ent.Value{*id}
 		}
+	case service.EdgeGeneralspec:
+		if id := m.generalspec; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ServiceMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removeddatabases != nil {
 		edges = append(edges, service.EdgeDatabases)
 	}
@@ -2766,12 +2991,15 @@ func (m *ServiceMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ServiceMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.cleareddatabases {
 		edges = append(edges, service.EdgeDatabases)
 	}
 	if m.clearedapispec {
 		edges = append(edges, service.EdgeApispec)
+	}
+	if m.clearedgeneralspec {
+		edges = append(edges, service.EdgeGeneralspec)
 	}
 	return edges
 }
@@ -2784,6 +3012,8 @@ func (m *ServiceMutation) EdgeCleared(name string) bool {
 		return m.cleareddatabases
 	case service.EdgeApispec:
 		return m.clearedapispec
+	case service.EdgeGeneralspec:
+		return m.clearedgeneralspec
 	}
 	return false
 }
@@ -2794,6 +3024,9 @@ func (m *ServiceMutation) ClearEdge(name string) error {
 	switch name {
 	case service.EdgeApispec:
 		m.ClearApispec()
+		return nil
+	case service.EdgeGeneralspec:
+		m.ClearGeneralspec()
 		return nil
 	}
 	return fmt.Errorf("unknown Service unique edge %s", name)
@@ -2808,6 +3041,9 @@ func (m *ServiceMutation) ResetEdge(name string) error {
 		return nil
 	case service.EdgeApispec:
 		m.ResetApispec()
+		return nil
+	case service.EdgeGeneralspec:
+		m.ResetGeneralspec()
 		return nil
 	}
 	return fmt.Errorf("unknown Service edge %s", name)

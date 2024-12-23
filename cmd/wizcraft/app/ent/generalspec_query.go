@@ -10,6 +10,7 @@ import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -17,7 +18,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/google/uuid"
 )
 
 // GeneralSpecQuery is the builder for querying GeneralSpec entities.
@@ -31,7 +31,6 @@ type GeneralSpecQuery struct {
 	withDatabase *DatabaseQuery
 	withApispec  *APISpecQuery
 	withProject  *ProjectQuery
-	withFKs      bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -82,7 +81,7 @@ func (gsq *GeneralSpecQuery) QueryService() *ServiceQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(generalspec.Table, generalspec.FieldID, selector),
 			sqlgraph.To(service.Table, service.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, generalspec.ServiceTable, generalspec.ServiceColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, generalspec.ServiceTable, generalspec.ServiceColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(gsq.driver.Dialect(), step)
 		return fromU, nil
@@ -104,7 +103,7 @@ func (gsq *GeneralSpecQuery) QueryDatabase() *DatabaseQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(generalspec.Table, generalspec.FieldID, selector),
 			sqlgraph.To(database.Table, database.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, generalspec.DatabaseTable, generalspec.DatabaseColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, generalspec.DatabaseTable, generalspec.DatabaseColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(gsq.driver.Dialect(), step)
 		return fromU, nil
@@ -126,7 +125,7 @@ func (gsq *GeneralSpecQuery) QueryApispec() *APISpecQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(generalspec.Table, generalspec.FieldID, selector),
 			sqlgraph.To(apispec.Table, apispec.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, generalspec.ApispecTable, generalspec.ApispecColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, generalspec.ApispecTable, generalspec.ApispecColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(gsq.driver.Dialect(), step)
 		return fromU, nil
@@ -148,7 +147,7 @@ func (gsq *GeneralSpecQuery) QueryProject() *ProjectQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(generalspec.Table, generalspec.FieldID, selector),
 			sqlgraph.To(project.Table, project.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, generalspec.ProjectTable, generalspec.ProjectColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, generalspec.ProjectTable, generalspec.ProjectColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(gsq.driver.Dialect(), step)
 		return fromU, nil
@@ -479,7 +478,6 @@ func (gsq *GeneralSpecQuery) prepareQuery(ctx context.Context) error {
 func (gsq *GeneralSpecQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*GeneralSpec, error) {
 	var (
 		nodes       = []*GeneralSpec{}
-		withFKs     = gsq.withFKs
 		_spec       = gsq.querySpec()
 		loadedTypes = [4]bool{
 			gsq.withService != nil,
@@ -488,12 +486,6 @@ func (gsq *GeneralSpecQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 			gsq.withProject != nil,
 		}
 	)
-	if gsq.withService != nil || gsq.withDatabase != nil || gsq.withApispec != nil || gsq.withProject != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, generalspec.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*GeneralSpec).scanValues(nil, columns)
 	}
@@ -540,130 +532,114 @@ func (gsq *GeneralSpecQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 }
 
 func (gsq *GeneralSpecQuery) loadService(ctx context.Context, query *ServiceQuery, nodes []*GeneralSpec, init func(*GeneralSpec), assign func(*GeneralSpec, *Service)) error {
-	ids := make([]uuid.UUID, 0, len(nodes))
-	nodeids := make(map[uuid.UUID][]*GeneralSpec)
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*GeneralSpec)
 	for i := range nodes {
-		if nodes[i].general_spec_service == nil {
-			continue
-		}
-		fk := *nodes[i].general_spec_service
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
 	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(service.IDIn(ids...))
+	query.withFKs = true
+	query.Where(predicate.Service(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(generalspec.ServiceColumn), fks...))
+	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
+		fk := n.general_spec_service
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "general_spec_service" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "general_spec_service" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "general_spec_service" returned %v for node %v`, *fk, n.ID)
 		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
+		assign(node, n)
 	}
 	return nil
 }
 func (gsq *GeneralSpecQuery) loadDatabase(ctx context.Context, query *DatabaseQuery, nodes []*GeneralSpec, init func(*GeneralSpec), assign func(*GeneralSpec, *Database)) error {
-	ids := make([]uuid.UUID, 0, len(nodes))
-	nodeids := make(map[uuid.UUID][]*GeneralSpec)
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*GeneralSpec)
 	for i := range nodes {
-		if nodes[i].general_spec_database == nil {
-			continue
-		}
-		fk := *nodes[i].general_spec_database
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
 	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(database.IDIn(ids...))
+	query.withFKs = true
+	query.Where(predicate.Database(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(generalspec.DatabaseColumn), fks...))
+	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
+		fk := n.general_spec_database
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "general_spec_database" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "general_spec_database" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "general_spec_database" returned %v for node %v`, *fk, n.ID)
 		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
+		assign(node, n)
 	}
 	return nil
 }
 func (gsq *GeneralSpecQuery) loadApispec(ctx context.Context, query *APISpecQuery, nodes []*GeneralSpec, init func(*GeneralSpec), assign func(*GeneralSpec, *APISpec)) error {
-	ids := make([]uuid.UUID, 0, len(nodes))
-	nodeids := make(map[uuid.UUID][]*GeneralSpec)
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*GeneralSpec)
 	for i := range nodes {
-		if nodes[i].general_spec_apispec == nil {
-			continue
-		}
-		fk := *nodes[i].general_spec_apispec
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
 	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(apispec.IDIn(ids...))
+	query.withFKs = true
+	query.Where(predicate.APISpec(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(generalspec.ApispecColumn), fks...))
+	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
+		fk := n.general_spec_apispec
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "general_spec_apispec" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "general_spec_apispec" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "general_spec_apispec" returned %v for node %v`, *fk, n.ID)
 		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
+		assign(node, n)
 	}
 	return nil
 }
 func (gsq *GeneralSpecQuery) loadProject(ctx context.Context, query *ProjectQuery, nodes []*GeneralSpec, init func(*GeneralSpec), assign func(*GeneralSpec, *Project)) error {
-	ids := make([]uuid.UUID, 0, len(nodes))
-	nodeids := make(map[uuid.UUID][]*GeneralSpec)
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*GeneralSpec)
 	for i := range nodes {
-		if nodes[i].general_spec_project == nil {
-			continue
-		}
-		fk := *nodes[i].general_spec_project
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
 	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(project.IDIn(ids...))
+	query.withFKs = true
+	query.Where(predicate.Project(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(generalspec.ProjectColumn), fks...))
+	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
+		fk := n.general_spec_project
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "general_spec_project" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "general_spec_project" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "general_spec_project" returned %v for node %v`, *fk, n.ID)
 		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
+		assign(node, n)
 	}
 	return nil
 }

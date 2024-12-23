@@ -256,7 +256,7 @@ func (gsc *GeneralSpecCreate) createSpec() (*GeneralSpec, *sqlgraph.CreateSpec) 
 	}
 	if nodes := gsc.mutation.ServiceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.ServiceTable,
 			Columns: []string{generalspec.ServiceColumn},
@@ -268,12 +268,11 @@ func (gsc *GeneralSpecCreate) createSpec() (*GeneralSpec, *sqlgraph.CreateSpec) 
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.general_spec_service = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := gsc.mutation.DatabaseIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.DatabaseTable,
 			Columns: []string{generalspec.DatabaseColumn},
@@ -285,12 +284,11 @@ func (gsc *GeneralSpecCreate) createSpec() (*GeneralSpec, *sqlgraph.CreateSpec) 
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.general_spec_database = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := gsc.mutation.ApispecIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.ApispecTable,
 			Columns: []string{generalspec.ApispecColumn},
@@ -302,12 +300,11 @@ func (gsc *GeneralSpecCreate) createSpec() (*GeneralSpec, *sqlgraph.CreateSpec) 
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.general_spec_apispec = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := gsc.mutation.ProjectIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.ProjectTable,
 			Columns: []string{generalspec.ProjectColumn},
@@ -319,7 +316,6 @@ func (gsc *GeneralSpecCreate) createSpec() (*GeneralSpec, *sqlgraph.CreateSpec) 
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.general_spec_project = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

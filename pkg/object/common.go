@@ -9,7 +9,7 @@ type GeneralSpec struct {
 	ProjectID   uuid.UUID
 	UserID      uuid.UUID
 	Name        string
-	Object      string
+	Type        string
 	Status      string
 	Description string
 }

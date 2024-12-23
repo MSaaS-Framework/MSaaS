@@ -34,28 +34,28 @@ const (
 	// Table holds the table name of the generalspec in the database.
 	Table = "general_specs"
 	// ServiceTable is the table that holds the service relation/edge.
-	ServiceTable = "general_specs"
+	ServiceTable = "services"
 	// ServiceInverseTable is the table name for the Service entity.
 	// It exists in this package in order to avoid circular dependency with the "service" package.
 	ServiceInverseTable = "services"
 	// ServiceColumn is the table column denoting the service relation/edge.
 	ServiceColumn = "general_spec_service"
 	// DatabaseTable is the table that holds the database relation/edge.
-	DatabaseTable = "general_specs"
+	DatabaseTable = "databases"
 	// DatabaseInverseTable is the table name for the Database entity.
 	// It exists in this package in order to avoid circular dependency with the "database" package.
 	DatabaseInverseTable = "databases"
 	// DatabaseColumn is the table column denoting the database relation/edge.
 	DatabaseColumn = "general_spec_database"
 	// ApispecTable is the table that holds the apispec relation/edge.
-	ApispecTable = "general_specs"
+	ApispecTable = "api_specs"
 	// ApispecInverseTable is the table name for the APISpec entity.
 	// It exists in this package in order to avoid circular dependency with the "apispec" package.
 	ApispecInverseTable = "api_specs"
 	// ApispecColumn is the table column denoting the apispec relation/edge.
 	ApispecColumn = "general_spec_apispec"
 	// ProjectTable is the table that holds the project relation/edge.
-	ProjectTable = "general_specs"
+	ProjectTable = "projects"
 	// ProjectInverseTable is the table name for the Project entity.
 	// It exists in this package in order to avoid circular dependency with the "project" package.
 	ProjectInverseTable = "projects"
@@ -73,24 +73,10 @@ var Columns = []string{
 	FieldDescription,
 }
 
-// ForeignKeys holds the SQL foreign-keys that are owned by the "general_specs"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"general_spec_service",
-	"general_spec_database",
-	"general_spec_apispec",
-	"general_spec_project",
-}
-
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -168,27 +154,27 @@ func newServiceStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ServiceInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, ServiceTable, ServiceColumn),
+		sqlgraph.Edge(sqlgraph.O2O, false, ServiceTable, ServiceColumn),
 	)
 }
 func newDatabaseStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(DatabaseInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, DatabaseTable, DatabaseColumn),
+		sqlgraph.Edge(sqlgraph.O2O, false, DatabaseTable, DatabaseColumn),
 	)
 }
 func newApispecStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ApispecInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, ApispecTable, ApispecColumn),
+		sqlgraph.Edge(sqlgraph.O2O, false, ApispecTable, ApispecColumn),
 	)
 }
 func newProjectStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ProjectInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, ProjectTable, ProjectColumn),
+		sqlgraph.Edge(sqlgraph.O2O, false, ProjectTable, ProjectColumn),
 	)
 }

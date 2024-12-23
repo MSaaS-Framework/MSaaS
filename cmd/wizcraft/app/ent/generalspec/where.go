@@ -385,7 +385,7 @@ func HasService() predicate.GeneralSpec {
 	return predicate.GeneralSpec(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, ServiceTable, ServiceColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, ServiceTable, ServiceColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -408,7 +408,7 @@ func HasDatabase() predicate.GeneralSpec {
 	return predicate.GeneralSpec(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, DatabaseTable, DatabaseColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, DatabaseTable, DatabaseColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -431,7 +431,7 @@ func HasApispec() predicate.GeneralSpec {
 	return predicate.GeneralSpec(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, ApispecTable, ApispecColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, ApispecTable, ApispecColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -454,7 +454,7 @@ func HasProject() predicate.GeneralSpec {
 	return predicate.GeneralSpec(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, ProjectTable, ProjectColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, ProjectTable, ProjectColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

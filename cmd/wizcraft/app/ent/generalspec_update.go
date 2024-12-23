@@ -260,7 +260,7 @@ func (gsu *GeneralSpecUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if gsu.mutation.ServiceCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.ServiceTable,
 			Columns: []string{generalspec.ServiceColumn},
@@ -273,7 +273,7 @@ func (gsu *GeneralSpecUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := gsu.mutation.ServiceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.ServiceTable,
 			Columns: []string{generalspec.ServiceColumn},
@@ -289,7 +289,7 @@ func (gsu *GeneralSpecUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if gsu.mutation.DatabaseCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.DatabaseTable,
 			Columns: []string{generalspec.DatabaseColumn},
@@ -302,7 +302,7 @@ func (gsu *GeneralSpecUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := gsu.mutation.DatabaseIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.DatabaseTable,
 			Columns: []string{generalspec.DatabaseColumn},
@@ -318,7 +318,7 @@ func (gsu *GeneralSpecUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if gsu.mutation.ApispecCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.ApispecTable,
 			Columns: []string{generalspec.ApispecColumn},
@@ -331,7 +331,7 @@ func (gsu *GeneralSpecUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := gsu.mutation.ApispecIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.ApispecTable,
 			Columns: []string{generalspec.ApispecColumn},
@@ -347,7 +347,7 @@ func (gsu *GeneralSpecUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if gsu.mutation.ProjectCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.ProjectTable,
 			Columns: []string{generalspec.ProjectColumn},
@@ -360,7 +360,7 @@ func (gsu *GeneralSpecUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := gsu.mutation.ProjectIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.ProjectTable,
 			Columns: []string{generalspec.ProjectColumn},
@@ -652,7 +652,7 @@ func (gsuo *GeneralSpecUpdateOne) sqlSave(ctx context.Context) (_node *GeneralSp
 	}
 	if gsuo.mutation.ServiceCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.ServiceTable,
 			Columns: []string{generalspec.ServiceColumn},
@@ -665,7 +665,7 @@ func (gsuo *GeneralSpecUpdateOne) sqlSave(ctx context.Context) (_node *GeneralSp
 	}
 	if nodes := gsuo.mutation.ServiceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.ServiceTable,
 			Columns: []string{generalspec.ServiceColumn},
@@ -681,7 +681,7 @@ func (gsuo *GeneralSpecUpdateOne) sqlSave(ctx context.Context) (_node *GeneralSp
 	}
 	if gsuo.mutation.DatabaseCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.DatabaseTable,
 			Columns: []string{generalspec.DatabaseColumn},
@@ -694,7 +694,7 @@ func (gsuo *GeneralSpecUpdateOne) sqlSave(ctx context.Context) (_node *GeneralSp
 	}
 	if nodes := gsuo.mutation.DatabaseIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.DatabaseTable,
 			Columns: []string{generalspec.DatabaseColumn},
@@ -710,7 +710,7 @@ func (gsuo *GeneralSpecUpdateOne) sqlSave(ctx context.Context) (_node *GeneralSp
 	}
 	if gsuo.mutation.ApispecCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.ApispecTable,
 			Columns: []string{generalspec.ApispecColumn},
@@ -723,7 +723,7 @@ func (gsuo *GeneralSpecUpdateOne) sqlSave(ctx context.Context) (_node *GeneralSp
 	}
 	if nodes := gsuo.mutation.ApispecIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.ApispecTable,
 			Columns: []string{generalspec.ApispecColumn},
@@ -739,7 +739,7 @@ func (gsuo *GeneralSpecUpdateOne) sqlSave(ctx context.Context) (_node *GeneralSp
 	}
 	if gsuo.mutation.ProjectCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.ProjectTable,
 			Columns: []string{generalspec.ProjectColumn},
@@ -752,7 +752,7 @@ func (gsuo *GeneralSpecUpdateOne) sqlSave(ctx context.Context) (_node *GeneralSp
 	}
 	if nodes := gsuo.mutation.ProjectIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   generalspec.ProjectTable,
 			Columns: []string{generalspec.ProjectColumn},

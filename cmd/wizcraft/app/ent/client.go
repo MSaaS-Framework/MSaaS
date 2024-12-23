@@ -387,6 +387,22 @@ func (c *APISpecClient) QueryProject(as *APISpec) *ProjectQuery {
 	return query
 }
 
+// QueryGeneralspec queries the generalspec edge of a APISpec.
+func (c *APISpecClient) QueryGeneralspec(as *APISpec) *GeneralSpecQuery {
+	query := (&GeneralSpecClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := as.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(apispec.Table, apispec.FieldID, id),
+			sqlgraph.To(generalspec.Table, generalspec.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, apispec.GeneralspecTable, apispec.GeneralspecColumn),
+		)
+		fromV = sqlgraph.Neighbors(as.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *APISpecClient) Hooks() []Hook {
 	return c.hooks.APISpec
@@ -552,6 +568,22 @@ func (c *DatabaseClient) QueryProject(d *Database) *ProjectQuery {
 	return query
 }
 
+// QueryGeneralspec queries the generalspec edge of a Database.
+func (c *DatabaseClient) QueryGeneralspec(d *Database) *GeneralSpecQuery {
+	query := (&GeneralSpecClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := d.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(database.Table, database.FieldID, id),
+			sqlgraph.To(generalspec.Table, generalspec.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, database.GeneralspecTable, database.GeneralspecColumn),
+		)
+		fromV = sqlgraph.Neighbors(d.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *DatabaseClient) Hooks() []Hook {
 	return c.hooks.Database
@@ -693,7 +725,7 @@ func (c *GeneralSpecClient) QueryService(gs *GeneralSpec) *ServiceQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(generalspec.Table, generalspec.FieldID, id),
 			sqlgraph.To(service.Table, service.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, generalspec.ServiceTable, generalspec.ServiceColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, generalspec.ServiceTable, generalspec.ServiceColumn),
 		)
 		fromV = sqlgraph.Neighbors(gs.driver.Dialect(), step)
 		return fromV, nil
@@ -709,7 +741,7 @@ func (c *GeneralSpecClient) QueryDatabase(gs *GeneralSpec) *DatabaseQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(generalspec.Table, generalspec.FieldID, id),
 			sqlgraph.To(database.Table, database.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, generalspec.DatabaseTable, generalspec.DatabaseColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, generalspec.DatabaseTable, generalspec.DatabaseColumn),
 		)
 		fromV = sqlgraph.Neighbors(gs.driver.Dialect(), step)
 		return fromV, nil
@@ -725,7 +757,7 @@ func (c *GeneralSpecClient) QueryApispec(gs *GeneralSpec) *APISpecQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(generalspec.Table, generalspec.FieldID, id),
 			sqlgraph.To(apispec.Table, apispec.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, generalspec.ApispecTable, generalspec.ApispecColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, generalspec.ApispecTable, generalspec.ApispecColumn),
 		)
 		fromV = sqlgraph.Neighbors(gs.driver.Dialect(), step)
 		return fromV, nil
@@ -741,7 +773,7 @@ func (c *GeneralSpecClient) QueryProject(gs *GeneralSpec) *ProjectQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(generalspec.Table, generalspec.FieldID, id),
 			sqlgraph.To(project.Table, project.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, generalspec.ProjectTable, generalspec.ProjectColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, generalspec.ProjectTable, generalspec.ProjectColumn),
 		)
 		fromV = sqlgraph.Neighbors(gs.driver.Dialect(), step)
 		return fromV, nil
@@ -930,6 +962,22 @@ func (c *ProjectClient) QueryApispecs(pr *Project) *APISpecQuery {
 	return query
 }
 
+// QueryGeneralspec queries the generalspec edge of a Project.
+func (c *ProjectClient) QueryGeneralspec(pr *Project) *GeneralSpecQuery {
+	query := (&GeneralSpecClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(project.Table, project.FieldID, id),
+			sqlgraph.To(generalspec.Table, generalspec.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, project.GeneralspecTable, project.GeneralspecColumn),
+		)
+		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ProjectClient) Hooks() []Hook {
 	return c.hooks.Project
@@ -1088,6 +1136,22 @@ func (c *ServiceClient) QueryApispec(s *Service) *APISpecQuery {
 			sqlgraph.From(service.Table, service.FieldID, id),
 			sqlgraph.To(apispec.Table, apispec.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, service.ApispecTable, service.ApispecColumn),
+		)
+		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryGeneralspec queries the generalspec edge of a Service.
+func (c *ServiceClient) QueryGeneralspec(s *Service) *GeneralSpecQuery {
+	query := (&GeneralSpecClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := s.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(service.Table, service.FieldID, id),
+			sqlgraph.To(generalspec.Table, generalspec.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, service.GeneralspecTable, service.GeneralspecColumn),
 		)
 		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
 		return fromV, nil

@@ -19,6 +19,8 @@ const (
 	EdgeDatabases = "databases"
 	// EdgeApispecs holds the string denoting the apispecs edge name in mutations.
 	EdgeApispecs = "apispecs"
+	// EdgeGeneralspec holds the string denoting the generalspec edge name in mutations.
+	EdgeGeneralspec = "generalspec"
 	// Table holds the table name of the project in the database.
 	Table = "projects"
 	// ServicesTable is the table that holds the services relation/edge.
@@ -42,6 +44,13 @@ const (
 	ApispecsInverseTable = "api_specs"
 	// ApispecsColumn is the table column denoting the apispecs relation/edge.
 	ApispecsColumn = "project_apispecs"
+	// GeneralspecTable is the table that holds the generalspec relation/edge.
+	GeneralspecTable = "projects"
+	// GeneralspecInverseTable is the table name for the GeneralSpec entity.
+	// It exists in this package in order to avoid circular dependency with the "generalspec" package.
+	GeneralspecInverseTable = "general_specs"
+	// GeneralspecColumn is the table column denoting the generalspec relation/edge.
+	GeneralspecColumn = "general_spec_project"
 )
 
 // Columns holds all SQL columns for project fields.
@@ -49,10 +58,21 @@ var Columns = []string{
 	FieldID,
 }
 
+// ForeignKeys holds the SQL foreign-keys that are owned by the "projects"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"general_spec_project",
+}
+
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -113,6 +133,13 @@ func ByApispecs(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newApispecsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByGeneralspecField orders the results by generalspec field.
+func ByGeneralspecField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newGeneralspecStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newServicesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -132,5 +159,12 @@ func newApispecsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ApispecsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ApispecsTable, ApispecsColumn),
+	)
+}
+func newGeneralspecStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(GeneralspecInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, GeneralspecTable, GeneralspecColumn),
 	)
 }

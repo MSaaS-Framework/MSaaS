@@ -4,6 +4,7 @@ package ent
 
 import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/apispec"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"encoding/json"
@@ -24,10 +25,11 @@ type APISpec struct {
 	OpenapiSpec []uint8 `json:"openapi_spec,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the APISpecQuery when eager-loading is set.
-	Edges            APISpecEdges `json:"edges"`
-	project_apispecs *uuid.UUID
-	service_apispec  *uuid.UUID
-	selectValues     sql.SelectValues
+	Edges                APISpecEdges `json:"edges"`
+	general_spec_apispec *int
+	project_apispecs     *uuid.UUID
+	service_apispec      *uuid.UUID
+	selectValues         sql.SelectValues
 }
 
 // APISpecEdges holds the relations/edges for other nodes in the graph.
@@ -36,9 +38,11 @@ type APISpecEdges struct {
 	Service *Service `json:"service,omitempty"`
 	// Project holds the value of the project edge.
 	Project *Project `json:"project,omitempty"`
+	// Generalspec holds the value of the generalspec edge.
+	Generalspec *GeneralSpec `json:"generalspec,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // ServiceOrErr returns the Service value or an error if the edge
@@ -63,6 +67,17 @@ func (e APISpecEdges) ProjectOrErr() (*Project, error) {
 	return nil, &NotLoadedError{edge: "project"}
 }
 
+// GeneralspecOrErr returns the Generalspec value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e APISpecEdges) GeneralspecOrErr() (*GeneralSpec, error) {
+	if e.Generalspec != nil {
+		return e.Generalspec, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: generalspec.Label}
+	}
+	return nil, &NotLoadedError{edge: "generalspec"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*APISpec) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -72,9 +87,11 @@ func (*APISpec) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case apispec.FieldID:
 			values[i] = new(uuid.UUID)
-		case apispec.ForeignKeys[0]: // project_apispecs
+		case apispec.ForeignKeys[0]: // general_spec_apispec
+			values[i] = new(sql.NullInt64)
+		case apispec.ForeignKeys[1]: // project_apispecs
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case apispec.ForeignKeys[1]: // service_apispec
+		case apispec.ForeignKeys[2]: // service_apispec
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
@@ -106,13 +123,20 @@ func (as *APISpec) assignValues(columns []string, values []any) error {
 				}
 			}
 		case apispec.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field general_spec_apispec", value)
+			} else if value.Valid {
+				as.general_spec_apispec = new(int)
+				*as.general_spec_apispec = int(value.Int64)
+			}
+		case apispec.ForeignKeys[1]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field project_apispecs", values[i])
 			} else if value.Valid {
 				as.project_apispecs = new(uuid.UUID)
 				*as.project_apispecs = *value.S.(*uuid.UUID)
 			}
-		case apispec.ForeignKeys[1]:
+		case apispec.ForeignKeys[2]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field service_apispec", values[i])
 			} else if value.Valid {
@@ -140,6 +164,11 @@ func (as *APISpec) QueryService() *ServiceQuery {
 // QueryProject queries the "project" edge of the APISpec entity.
 func (as *APISpec) QueryProject() *ProjectQuery {
 	return NewAPISpecClient(as.config).QueryProject(as)
+}
+
+// QueryGeneralspec queries the "generalspec" edge of the APISpec entity.
+func (as *APISpec) QueryGeneralspec() *GeneralSpecQuery {
+	return NewAPISpecClient(as.config).QueryGeneralspec(as)
 }
 
 // Update returns a builder for updating this APISpec.

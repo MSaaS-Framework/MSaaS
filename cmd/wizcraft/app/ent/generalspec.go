@@ -33,12 +33,8 @@ type GeneralSpec struct {
 	Description string `json:"description,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the GeneralSpecQuery when eager-loading is set.
-	Edges                 GeneralSpecEdges `json:"edges"`
-	general_spec_service  *uuid.UUID
-	general_spec_database *uuid.UUID
-	general_spec_apispec  *uuid.UUID
-	general_spec_project  *uuid.UUID
-	selectValues          sql.SelectValues
+	Edges        GeneralSpecEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // GeneralSpecEdges holds the relations/edges for other nodes in the graph.
@@ -111,14 +107,6 @@ func (*GeneralSpec) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case generalspec.FieldUUID:
 			values[i] = new(uuid.UUID)
-		case generalspec.ForeignKeys[0]: // general_spec_service
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case generalspec.ForeignKeys[1]: // general_spec_database
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case generalspec.ForeignKeys[2]: // general_spec_apispec
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case generalspec.ForeignKeys[3]: // general_spec_project
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -169,34 +157,6 @@ func (gs *GeneralSpec) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
 				gs.Description = value.String
-			}
-		case generalspec.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field general_spec_service", values[i])
-			} else if value.Valid {
-				gs.general_spec_service = new(uuid.UUID)
-				*gs.general_spec_service = *value.S.(*uuid.UUID)
-			}
-		case generalspec.ForeignKeys[1]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field general_spec_database", values[i])
-			} else if value.Valid {
-				gs.general_spec_database = new(uuid.UUID)
-				*gs.general_spec_database = *value.S.(*uuid.UUID)
-			}
-		case generalspec.ForeignKeys[2]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field general_spec_apispec", values[i])
-			} else if value.Valid {
-				gs.general_spec_apispec = new(uuid.UUID)
-				*gs.general_spec_apispec = *value.S.(*uuid.UUID)
-			}
-		case generalspec.ForeignKeys[3]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field general_spec_project", values[i])
-			} else if value.Valid {
-				gs.general_spec_project = new(uuid.UUID)
-				*gs.general_spec_project = *value.S.(*uuid.UUID)
 			}
 		default:
 			gs.selectValues.Set(columns[i], values[i])

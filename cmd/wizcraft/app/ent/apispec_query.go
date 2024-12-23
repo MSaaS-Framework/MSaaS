@@ -4,6 +4,7 @@ package ent
 
 import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/apispec"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/predicate"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
@@ -21,13 +22,14 @@ import (
 // APISpecQuery is the builder for querying APISpec entities.
 type APISpecQuery struct {
 	config
-	ctx         *QueryContext
-	order       []apispec.OrderOption
-	inters      []Interceptor
-	predicates  []predicate.APISpec
-	withService *ServiceQuery
-	withProject *ProjectQuery
-	withFKs     bool
+	ctx             *QueryContext
+	order           []apispec.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.APISpec
+	withService     *ServiceQuery
+	withProject     *ProjectQuery
+	withGeneralspec *GeneralSpecQuery
+	withFKs         bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -101,6 +103,28 @@ func (asq *APISpecQuery) QueryProject() *ProjectQuery {
 			sqlgraph.From(apispec.Table, apispec.FieldID, selector),
 			sqlgraph.To(project.Table, project.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, apispec.ProjectTable, apispec.ProjectColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(asq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryGeneralspec chains the current query on the "generalspec" edge.
+func (asq *APISpecQuery) QueryGeneralspec() *GeneralSpecQuery {
+	query := (&GeneralSpecClient{config: asq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := asq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := asq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(apispec.Table, apispec.FieldID, selector),
+			sqlgraph.To(generalspec.Table, generalspec.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, apispec.GeneralspecTable, apispec.GeneralspecColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(asq.driver.Dialect(), step)
 		return fromU, nil
@@ -295,13 +319,14 @@ func (asq *APISpecQuery) Clone() *APISpecQuery {
 		return nil
 	}
 	return &APISpecQuery{
-		config:      asq.config,
-		ctx:         asq.ctx.Clone(),
-		order:       append([]apispec.OrderOption{}, asq.order...),
-		inters:      append([]Interceptor{}, asq.inters...),
-		predicates:  append([]predicate.APISpec{}, asq.predicates...),
-		withService: asq.withService.Clone(),
-		withProject: asq.withProject.Clone(),
+		config:          asq.config,
+		ctx:             asq.ctx.Clone(),
+		order:           append([]apispec.OrderOption{}, asq.order...),
+		inters:          append([]Interceptor{}, asq.inters...),
+		predicates:      append([]predicate.APISpec{}, asq.predicates...),
+		withService:     asq.withService.Clone(),
+		withProject:     asq.withProject.Clone(),
+		withGeneralspec: asq.withGeneralspec.Clone(),
 		// clone intermediate query.
 		sql:  asq.sql.Clone(),
 		path: asq.path,
@@ -327,6 +352,17 @@ func (asq *APISpecQuery) WithProject(opts ...func(*ProjectQuery)) *APISpecQuery 
 		opt(query)
 	}
 	asq.withProject = query
+	return asq
+}
+
+// WithGeneralspec tells the query-builder to eager-load the nodes that are connected to
+// the "generalspec" edge. The optional arguments are used to configure the query builder of the edge.
+func (asq *APISpecQuery) WithGeneralspec(opts ...func(*GeneralSpecQuery)) *APISpecQuery {
+	query := (&GeneralSpecClient{config: asq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	asq.withGeneralspec = query
 	return asq
 }
 
@@ -409,12 +445,13 @@ func (asq *APISpecQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*API
 		nodes       = []*APISpec{}
 		withFKs     = asq.withFKs
 		_spec       = asq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			asq.withService != nil,
 			asq.withProject != nil,
+			asq.withGeneralspec != nil,
 		}
 	)
-	if asq.withService != nil || asq.withProject != nil {
+	if asq.withService != nil || asq.withProject != nil || asq.withGeneralspec != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -447,6 +484,12 @@ func (asq *APISpecQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*API
 	if query := asq.withProject; query != nil {
 		if err := asq.loadProject(ctx, query, nodes, nil,
 			func(n *APISpec, e *Project) { n.Edges.Project = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := asq.withGeneralspec; query != nil {
+		if err := asq.loadGeneralspec(ctx, query, nodes, nil,
+			func(n *APISpec, e *GeneralSpec) { n.Edges.Generalspec = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -510,6 +553,38 @@ func (asq *APISpecQuery) loadProject(ctx context.Context, query *ProjectQuery, n
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "project_apispecs" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (asq *APISpecQuery) loadGeneralspec(ctx context.Context, query *GeneralSpecQuery, nodes []*APISpec, init func(*APISpec), assign func(*APISpec, *GeneralSpec)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*APISpec)
+	for i := range nodes {
+		if nodes[i].general_spec_apispec == nil {
+			continue
+		}
+		fk := *nodes[i].general_spec_apispec
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(generalspec.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "general_spec_apispec" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

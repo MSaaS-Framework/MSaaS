@@ -4,6 +4,7 @@ package ent
 
 import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/database"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/predicate"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
@@ -110,6 +111,25 @@ func (du *DatabaseUpdate) SetProject(p *Project) *DatabaseUpdate {
 	return du.SetProjectID(p.ID)
 }
 
+// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
+func (du *DatabaseUpdate) SetGeneralspecID(id int) *DatabaseUpdate {
+	du.mutation.SetGeneralspecID(id)
+	return du
+}
+
+// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
+func (du *DatabaseUpdate) SetNillableGeneralspecID(id *int) *DatabaseUpdate {
+	if id != nil {
+		du = du.SetGeneralspecID(*id)
+	}
+	return du
+}
+
+// SetGeneralspec sets the "generalspec" edge to the GeneralSpec entity.
+func (du *DatabaseUpdate) SetGeneralspec(g *GeneralSpec) *DatabaseUpdate {
+	return du.SetGeneralspecID(g.ID)
+}
+
 // Mutation returns the DatabaseMutation object of the builder.
 func (du *DatabaseUpdate) Mutation() *DatabaseMutation {
 	return du.mutation
@@ -124,6 +144,12 @@ func (du *DatabaseUpdate) ClearService() *DatabaseUpdate {
 // ClearProject clears the "project" edge to the Project entity.
 func (du *DatabaseUpdate) ClearProject() *DatabaseUpdate {
 	du.mutation.ClearProject()
+	return du
+}
+
+// ClearGeneralspec clears the "generalspec" edge to the GeneralSpec entity.
+func (du *DatabaseUpdate) ClearGeneralspec() *DatabaseUpdate {
+	du.mutation.ClearGeneralspec()
 	return du
 }
 
@@ -248,6 +274,35 @@ func (du *DatabaseUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if du.mutation.GeneralspecCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   database.GeneralspecTable,
+			Columns: []string{database.GeneralspecColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := du.mutation.GeneralspecIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   database.GeneralspecTable,
+			Columns: []string{database.GeneralspecColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, du.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{database.Label}
@@ -348,6 +403,25 @@ func (duo *DatabaseUpdateOne) SetProject(p *Project) *DatabaseUpdateOne {
 	return duo.SetProjectID(p.ID)
 }
 
+// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
+func (duo *DatabaseUpdateOne) SetGeneralspecID(id int) *DatabaseUpdateOne {
+	duo.mutation.SetGeneralspecID(id)
+	return duo
+}
+
+// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
+func (duo *DatabaseUpdateOne) SetNillableGeneralspecID(id *int) *DatabaseUpdateOne {
+	if id != nil {
+		duo = duo.SetGeneralspecID(*id)
+	}
+	return duo
+}
+
+// SetGeneralspec sets the "generalspec" edge to the GeneralSpec entity.
+func (duo *DatabaseUpdateOne) SetGeneralspec(g *GeneralSpec) *DatabaseUpdateOne {
+	return duo.SetGeneralspecID(g.ID)
+}
+
 // Mutation returns the DatabaseMutation object of the builder.
 func (duo *DatabaseUpdateOne) Mutation() *DatabaseMutation {
 	return duo.mutation
@@ -362,6 +436,12 @@ func (duo *DatabaseUpdateOne) ClearService() *DatabaseUpdateOne {
 // ClearProject clears the "project" edge to the Project entity.
 func (duo *DatabaseUpdateOne) ClearProject() *DatabaseUpdateOne {
 	duo.mutation.ClearProject()
+	return duo
+}
+
+// ClearGeneralspec clears the "generalspec" edge to the GeneralSpec entity.
+func (duo *DatabaseUpdateOne) ClearGeneralspec() *DatabaseUpdateOne {
+	duo.mutation.ClearGeneralspec()
 	return duo
 }
 
@@ -509,6 +589,35 @@ func (duo *DatabaseUpdateOne) sqlSave(ctx context.Context) (_node *Database, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if duo.mutation.GeneralspecCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   database.GeneralspecTable,
+			Columns: []string{database.GeneralspecColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := duo.mutation.GeneralspecIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   database.GeneralspecTable,
+			Columns: []string{database.GeneralspecColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

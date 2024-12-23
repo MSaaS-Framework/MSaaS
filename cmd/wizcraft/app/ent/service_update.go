@@ -5,6 +5,7 @@ package ent
 import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/apispec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/database"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/predicate"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"context"
@@ -64,6 +65,25 @@ func (su *ServiceUpdate) SetApispec(a *APISpec) *ServiceUpdate {
 	return su.SetApispecID(a.ID)
 }
 
+// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
+func (su *ServiceUpdate) SetGeneralspecID(id int) *ServiceUpdate {
+	su.mutation.SetGeneralspecID(id)
+	return su
+}
+
+// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
+func (su *ServiceUpdate) SetNillableGeneralspecID(id *int) *ServiceUpdate {
+	if id != nil {
+		su = su.SetGeneralspecID(*id)
+	}
+	return su
+}
+
+// SetGeneralspec sets the "generalspec" edge to the GeneralSpec entity.
+func (su *ServiceUpdate) SetGeneralspec(g *GeneralSpec) *ServiceUpdate {
+	return su.SetGeneralspecID(g.ID)
+}
+
 // Mutation returns the ServiceMutation object of the builder.
 func (su *ServiceUpdate) Mutation() *ServiceMutation {
 	return su.mutation
@@ -93,6 +113,12 @@ func (su *ServiceUpdate) RemoveDatabases(d ...*Database) *ServiceUpdate {
 // ClearApispec clears the "apispec" edge to the APISpec entity.
 func (su *ServiceUpdate) ClearApispec() *ServiceUpdate {
 	su.mutation.ClearApispec()
+	return su
+}
+
+// ClearGeneralspec clears the "generalspec" edge to the GeneralSpec entity.
+func (su *ServiceUpdate) ClearGeneralspec() *ServiceUpdate {
+	su.mutation.ClearGeneralspec()
 	return su
 }
 
@@ -206,6 +232,35 @@ func (su *ServiceUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if su.mutation.GeneralspecCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   service.GeneralspecTable,
+			Columns: []string{service.GeneralspecColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.GeneralspecIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   service.GeneralspecTable,
+			Columns: []string{service.GeneralspecColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, su.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{service.Label}
@@ -260,6 +315,25 @@ func (suo *ServiceUpdateOne) SetApispec(a *APISpec) *ServiceUpdateOne {
 	return suo.SetApispecID(a.ID)
 }
 
+// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
+func (suo *ServiceUpdateOne) SetGeneralspecID(id int) *ServiceUpdateOne {
+	suo.mutation.SetGeneralspecID(id)
+	return suo
+}
+
+// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
+func (suo *ServiceUpdateOne) SetNillableGeneralspecID(id *int) *ServiceUpdateOne {
+	if id != nil {
+		suo = suo.SetGeneralspecID(*id)
+	}
+	return suo
+}
+
+// SetGeneralspec sets the "generalspec" edge to the GeneralSpec entity.
+func (suo *ServiceUpdateOne) SetGeneralspec(g *GeneralSpec) *ServiceUpdateOne {
+	return suo.SetGeneralspecID(g.ID)
+}
+
 // Mutation returns the ServiceMutation object of the builder.
 func (suo *ServiceUpdateOne) Mutation() *ServiceMutation {
 	return suo.mutation
@@ -289,6 +363,12 @@ func (suo *ServiceUpdateOne) RemoveDatabases(d ...*Database) *ServiceUpdateOne {
 // ClearApispec clears the "apispec" edge to the APISpec entity.
 func (suo *ServiceUpdateOne) ClearApispec() *ServiceUpdateOne {
 	suo.mutation.ClearApispec()
+	return suo
+}
+
+// ClearGeneralspec clears the "generalspec" edge to the GeneralSpec entity.
+func (suo *ServiceUpdateOne) ClearGeneralspec() *ServiceUpdateOne {
+	suo.mutation.ClearGeneralspec()
 	return suo
 }
 
@@ -425,6 +505,35 @@ func (suo *ServiceUpdateOne) sqlSave(ctx context.Context) (_node *Service, err e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(apispec.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if suo.mutation.GeneralspecCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   service.GeneralspecTable,
+			Columns: []string{service.GeneralspecColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.GeneralspecIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   service.GeneralspecTable,
+			Columns: []string{service.GeneralspecColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

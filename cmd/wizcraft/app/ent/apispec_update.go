@@ -4,6 +4,7 @@ package ent
 
 import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/apispec"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/predicate"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
@@ -81,6 +82,25 @@ func (asu *APISpecUpdate) SetProject(p *Project) *APISpecUpdate {
 	return asu.SetProjectID(p.ID)
 }
 
+// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
+func (asu *APISpecUpdate) SetGeneralspecID(id int) *APISpecUpdate {
+	asu.mutation.SetGeneralspecID(id)
+	return asu
+}
+
+// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
+func (asu *APISpecUpdate) SetNillableGeneralspecID(id *int) *APISpecUpdate {
+	if id != nil {
+		asu = asu.SetGeneralspecID(*id)
+	}
+	return asu
+}
+
+// SetGeneralspec sets the "generalspec" edge to the GeneralSpec entity.
+func (asu *APISpecUpdate) SetGeneralspec(g *GeneralSpec) *APISpecUpdate {
+	return asu.SetGeneralspecID(g.ID)
+}
+
 // Mutation returns the APISpecMutation object of the builder.
 func (asu *APISpecUpdate) Mutation() *APISpecMutation {
 	return asu.mutation
@@ -95,6 +115,12 @@ func (asu *APISpecUpdate) ClearService() *APISpecUpdate {
 // ClearProject clears the "project" edge to the Project entity.
 func (asu *APISpecUpdate) ClearProject() *APISpecUpdate {
 	asu.mutation.ClearProject()
+	return asu
+}
+
+// ClearGeneralspec clears the "generalspec" edge to the GeneralSpec entity.
+func (asu *APISpecUpdate) ClearGeneralspec() *APISpecUpdate {
+	asu.mutation.ClearGeneralspec()
 	return asu
 }
 
@@ -200,6 +226,35 @@ func (asu *APISpecUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if asu.mutation.GeneralspecCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   apispec.GeneralspecTable,
+			Columns: []string{apispec.GeneralspecColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := asu.mutation.GeneralspecIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   apispec.GeneralspecTable,
+			Columns: []string{apispec.GeneralspecColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, asu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{apispec.Label}
@@ -270,6 +325,25 @@ func (asuo *APISpecUpdateOne) SetProject(p *Project) *APISpecUpdateOne {
 	return asuo.SetProjectID(p.ID)
 }
 
+// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
+func (asuo *APISpecUpdateOne) SetGeneralspecID(id int) *APISpecUpdateOne {
+	asuo.mutation.SetGeneralspecID(id)
+	return asuo
+}
+
+// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
+func (asuo *APISpecUpdateOne) SetNillableGeneralspecID(id *int) *APISpecUpdateOne {
+	if id != nil {
+		asuo = asuo.SetGeneralspecID(*id)
+	}
+	return asuo
+}
+
+// SetGeneralspec sets the "generalspec" edge to the GeneralSpec entity.
+func (asuo *APISpecUpdateOne) SetGeneralspec(g *GeneralSpec) *APISpecUpdateOne {
+	return asuo.SetGeneralspecID(g.ID)
+}
+
 // Mutation returns the APISpecMutation object of the builder.
 func (asuo *APISpecUpdateOne) Mutation() *APISpecMutation {
 	return asuo.mutation
@@ -284,6 +358,12 @@ func (asuo *APISpecUpdateOne) ClearService() *APISpecUpdateOne {
 // ClearProject clears the "project" edge to the Project entity.
 func (asuo *APISpecUpdateOne) ClearProject() *APISpecUpdateOne {
 	asuo.mutation.ClearProject()
+	return asuo
+}
+
+// ClearGeneralspec clears the "generalspec" edge to the GeneralSpec entity.
+func (asuo *APISpecUpdateOne) ClearGeneralspec() *APISpecUpdateOne {
+	asuo.mutation.ClearGeneralspec()
 	return asuo
 }
 
@@ -412,6 +492,35 @@ func (asuo *APISpecUpdateOne) sqlSave(ctx context.Context) (_node *APISpec, err 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if asuo.mutation.GeneralspecCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   apispec.GeneralspecTable,
+			Columns: []string{apispec.GeneralspecColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := asuo.mutation.GeneralspecIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   apispec.GeneralspecTable,
+			Columns: []string{apispec.GeneralspecColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

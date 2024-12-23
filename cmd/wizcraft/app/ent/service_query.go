@@ -5,6 +5,7 @@ package ent
 import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/apispec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/database"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/predicate"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"context"
@@ -22,13 +23,14 @@ import (
 // ServiceQuery is the builder for querying Service entities.
 type ServiceQuery struct {
 	config
-	ctx           *QueryContext
-	order         []service.OrderOption
-	inters        []Interceptor
-	predicates    []predicate.Service
-	withDatabases *DatabaseQuery
-	withApispec   *APISpecQuery
-	withFKs       bool
+	ctx             *QueryContext
+	order           []service.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.Service
+	withDatabases   *DatabaseQuery
+	withApispec     *APISpecQuery
+	withGeneralspec *GeneralSpecQuery
+	withFKs         bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -102,6 +104,28 @@ func (sq *ServiceQuery) QueryApispec() *APISpecQuery {
 			sqlgraph.From(service.Table, service.FieldID, selector),
 			sqlgraph.To(apispec.Table, apispec.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, service.ApispecTable, service.ApispecColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryGeneralspec chains the current query on the "generalspec" edge.
+func (sq *ServiceQuery) QueryGeneralspec() *GeneralSpecQuery {
+	query := (&GeneralSpecClient{config: sq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := sq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := sq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(service.Table, service.FieldID, selector),
+			sqlgraph.To(generalspec.Table, generalspec.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, service.GeneralspecTable, service.GeneralspecColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
 		return fromU, nil
@@ -296,13 +320,14 @@ func (sq *ServiceQuery) Clone() *ServiceQuery {
 		return nil
 	}
 	return &ServiceQuery{
-		config:        sq.config,
-		ctx:           sq.ctx.Clone(),
-		order:         append([]service.OrderOption{}, sq.order...),
-		inters:        append([]Interceptor{}, sq.inters...),
-		predicates:    append([]predicate.Service{}, sq.predicates...),
-		withDatabases: sq.withDatabases.Clone(),
-		withApispec:   sq.withApispec.Clone(),
+		config:          sq.config,
+		ctx:             sq.ctx.Clone(),
+		order:           append([]service.OrderOption{}, sq.order...),
+		inters:          append([]Interceptor{}, sq.inters...),
+		predicates:      append([]predicate.Service{}, sq.predicates...),
+		withDatabases:   sq.withDatabases.Clone(),
+		withApispec:     sq.withApispec.Clone(),
+		withGeneralspec: sq.withGeneralspec.Clone(),
 		// clone intermediate query.
 		sql:  sq.sql.Clone(),
 		path: sq.path,
@@ -328,6 +353,17 @@ func (sq *ServiceQuery) WithApispec(opts ...func(*APISpecQuery)) *ServiceQuery {
 		opt(query)
 	}
 	sq.withApispec = query
+	return sq
+}
+
+// WithGeneralspec tells the query-builder to eager-load the nodes that are connected to
+// the "generalspec" edge. The optional arguments are used to configure the query builder of the edge.
+func (sq *ServiceQuery) WithGeneralspec(opts ...func(*GeneralSpecQuery)) *ServiceQuery {
+	query := (&GeneralSpecClient{config: sq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	sq.withGeneralspec = query
 	return sq
 }
 
@@ -388,11 +424,15 @@ func (sq *ServiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Serv
 		nodes       = []*Service{}
 		withFKs     = sq.withFKs
 		_spec       = sq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			sq.withDatabases != nil,
 			sq.withApispec != nil,
+			sq.withGeneralspec != nil,
 		}
 	)
+	if sq.withGeneralspec != nil {
+		withFKs = true
+	}
 	if withFKs {
 		_spec.Node.Columns = append(_spec.Node.Columns, service.ForeignKeys...)
 	}
@@ -424,6 +464,12 @@ func (sq *ServiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Serv
 	if query := sq.withApispec; query != nil {
 		if err := sq.loadApispec(ctx, query, nodes, nil,
 			func(n *Service, e *APISpec) { n.Edges.Apispec = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := sq.withGeneralspec; query != nil {
+		if err := sq.loadGeneralspec(ctx, query, nodes, nil,
+			func(n *Service, e *GeneralSpec) { n.Edges.Generalspec = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -486,6 +532,38 @@ func (sq *ServiceQuery) loadApispec(ctx context.Context, query *APISpecQuery, no
 			return fmt.Errorf(`unexpected referenced foreign-key "service_apispec" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
+	}
+	return nil
+}
+func (sq *ServiceQuery) loadGeneralspec(ctx context.Context, query *GeneralSpecQuery, nodes []*Service, init func(*Service), assign func(*Service, *GeneralSpec)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Service)
+	for i := range nodes {
+		if nodes[i].general_spec_service == nil {
+			continue
+		}
+		fk := *nodes[i].general_spec_service
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(generalspec.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "general_spec_service" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }

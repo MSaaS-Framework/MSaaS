@@ -28,5 +28,7 @@ func (Project) Edges() []ent.Edge {
 		edge.To("services", Service.Type),
 		edge.To("databases", Database.Type),
 		edge.To("apispecs", APISpec.Type),
+		edge.From("generalspec", GeneralSpec.Type).
+			Ref("project").Unique(),
 	}
 }

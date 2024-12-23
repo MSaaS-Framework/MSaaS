@@ -33,7 +33,7 @@ import (
 func CreateProjectInHostPath(project *object.Project) error {
 
 	// 호스트에 생성할 프로젝트 경로 (폴더 + 프로젝트 이름)
-	path := project.HostPath + "/" + project.General.Name
+	path := "/msaas/" + project.General.Name
 
 	// project.HostPath 경로 권한 확인 및 폴더 생성. 만약 쓰기 권한이 없으면 에러 반환
 	if err := ensureDirectoryExists(path); err != nil {
@@ -44,6 +44,20 @@ func CreateProjectInHostPath(project *object.Project) error {
 	// if project.GitHubRepo != "" {
 	//     // GitHub API 호출 코드
 	// }
+
+	return nil
+}
+
+func DeleteProjectInHostPath(projectName string) error {
+
+	// 호스트에 프로젝트 경로 삭제
+	// 호스트에 생성할 프로젝트 경로 (폴더 + 프로젝트 이름)
+	path := "/msaas/" + projectName
+
+	// project.HostPath 경로 권한 확인 및 폴더 삭제. 만약 쓰기 권한이 없으면 에러 반환
+	if err := os.RemoveAll(path); err != nil {
+		return fmt.Errorf("failed to delete directory at %s: %v", path, err)
+	}
 
 	return nil
 }
@@ -98,14 +112,6 @@ func CreateGitHubRepo(project *object.Project) error {
 func UpdateProjectInHostPath(project *object.Project) error {
 
 	// 호스트에 프로젝트 경로 변경
-
-	return nil
-
-}
-
-func DeleteProjectInHostPath(project *object.Project) error {
-
-	// 호스트에 프로젝트 경로 삭제
 
 	return nil
 

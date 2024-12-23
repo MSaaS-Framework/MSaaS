@@ -17,6 +17,8 @@ const (
 	EdgeDatabases = "databases"
 	// EdgeApispec holds the string denoting the apispec edge name in mutations.
 	EdgeApispec = "apispec"
+	// EdgeGeneralspec holds the string denoting the generalspec edge name in mutations.
+	EdgeGeneralspec = "generalspec"
 	// Table holds the table name of the service in the database.
 	Table = "services"
 	// DatabasesTable is the table that holds the databases relation/edge.
@@ -33,6 +35,13 @@ const (
 	ApispecInverseTable = "api_specs"
 	// ApispecColumn is the table column denoting the apispec relation/edge.
 	ApispecColumn = "service_apispec"
+	// GeneralspecTable is the table that holds the generalspec relation/edge.
+	GeneralspecTable = "services"
+	// GeneralspecInverseTable is the table name for the GeneralSpec entity.
+	// It exists in this package in order to avoid circular dependency with the "generalspec" package.
+	GeneralspecInverseTable = "general_specs"
+	// GeneralspecColumn is the table column denoting the generalspec relation/edge.
+	GeneralspecColumn = "general_spec_service"
 )
 
 // Columns holds all SQL columns for service fields.
@@ -43,6 +52,7 @@ var Columns = []string{
 // ForeignKeys holds the SQL foreign-keys that are owned by the "services"
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
+	"general_spec_service",
 	"project_services",
 }
 
@@ -94,6 +104,13 @@ func ByApispecField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newApispecStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByGeneralspecField orders the results by generalspec field.
+func ByGeneralspecField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newGeneralspecStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newDatabasesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -106,5 +123,12 @@ func newApispecStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ApispecInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, ApispecTable, ApispecColumn),
+	)
+}
+func newGeneralspecStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(GeneralspecInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, GeneralspecTable, GeneralspecColumn),
 	)
 }

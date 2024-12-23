@@ -5,6 +5,7 @@ package ent
 import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/apispec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/database"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"context"
@@ -79,6 +80,25 @@ func (pc *ProjectCreate) AddApispecs(a ...*APISpec) *ProjectCreate {
 		ids[i] = a[i].ID
 	}
 	return pc.AddApispecIDs(ids...)
+}
+
+// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
+func (pc *ProjectCreate) SetGeneralspecID(id int) *ProjectCreate {
+	pc.mutation.SetGeneralspecID(id)
+	return pc
+}
+
+// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
+func (pc *ProjectCreate) SetNillableGeneralspecID(id *int) *ProjectCreate {
+	if id != nil {
+		pc = pc.SetGeneralspecID(*id)
+	}
+	return pc
+}
+
+// SetGeneralspec sets the "generalspec" edge to the GeneralSpec entity.
+func (pc *ProjectCreate) SetGeneralspec(g *GeneralSpec) *ProjectCreate {
+	return pc.SetGeneralspecID(g.ID)
 }
 
 // Mutation returns the ProjectMutation object of the builder.
@@ -205,6 +225,23 @@ func (pc *ProjectCreate) createSpec() (*Project, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.mutation.GeneralspecIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   project.GeneralspecTable,
+			Columns: []string{project.GeneralspecColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.general_spec_project = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

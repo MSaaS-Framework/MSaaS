@@ -101,6 +101,29 @@ func HasApispecWith(preds ...predicate.APISpec) predicate.Service {
 	})
 }
 
+// HasGeneralspec applies the HasEdge predicate on the "generalspec" edge.
+func HasGeneralspec() predicate.Service {
+	return predicate.Service(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, GeneralspecTable, GeneralspecColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasGeneralspecWith applies the HasEdge predicate on the "generalspec" edge with a given conditions (other predicates).
+func HasGeneralspecWith(preds ...predicate.GeneralSpec) predicate.Service {
+	return predicate.Service(func(s *sql.Selector) {
+		step := newGeneralspecStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Service) predicate.Service {
 	return predicate.Service(sql.AndPredicates(predicates...))

@@ -4,6 +4,7 @@ package ent
 
 import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/database"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/predicate"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
@@ -21,13 +22,14 @@ import (
 // DatabaseQuery is the builder for querying Database entities.
 type DatabaseQuery struct {
 	config
-	ctx         *QueryContext
-	order       []database.OrderOption
-	inters      []Interceptor
-	predicates  []predicate.Database
-	withService *ServiceQuery
-	withProject *ProjectQuery
-	withFKs     bool
+	ctx             *QueryContext
+	order           []database.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.Database
+	withService     *ServiceQuery
+	withProject     *ProjectQuery
+	withGeneralspec *GeneralSpecQuery
+	withFKs         bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -101,6 +103,28 @@ func (dq *DatabaseQuery) QueryProject() *ProjectQuery {
 			sqlgraph.From(database.Table, database.FieldID, selector),
 			sqlgraph.To(project.Table, project.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, database.ProjectTable, database.ProjectColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(dq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryGeneralspec chains the current query on the "generalspec" edge.
+func (dq *DatabaseQuery) QueryGeneralspec() *GeneralSpecQuery {
+	query := (&GeneralSpecClient{config: dq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := dq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := dq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(database.Table, database.FieldID, selector),
+			sqlgraph.To(generalspec.Table, generalspec.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, database.GeneralspecTable, database.GeneralspecColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(dq.driver.Dialect(), step)
 		return fromU, nil
@@ -295,13 +319,14 @@ func (dq *DatabaseQuery) Clone() *DatabaseQuery {
 		return nil
 	}
 	return &DatabaseQuery{
-		config:      dq.config,
-		ctx:         dq.ctx.Clone(),
-		order:       append([]database.OrderOption{}, dq.order...),
-		inters:      append([]Interceptor{}, dq.inters...),
-		predicates:  append([]predicate.Database{}, dq.predicates...),
-		withService: dq.withService.Clone(),
-		withProject: dq.withProject.Clone(),
+		config:          dq.config,
+		ctx:             dq.ctx.Clone(),
+		order:           append([]database.OrderOption{}, dq.order...),
+		inters:          append([]Interceptor{}, dq.inters...),
+		predicates:      append([]predicate.Database{}, dq.predicates...),
+		withService:     dq.withService.Clone(),
+		withProject:     dq.withProject.Clone(),
+		withGeneralspec: dq.withGeneralspec.Clone(),
 		// clone intermediate query.
 		sql:  dq.sql.Clone(),
 		path: dq.path,
@@ -327,6 +352,17 @@ func (dq *DatabaseQuery) WithProject(opts ...func(*ProjectQuery)) *DatabaseQuery
 		opt(query)
 	}
 	dq.withProject = query
+	return dq
+}
+
+// WithGeneralspec tells the query-builder to eager-load the nodes that are connected to
+// the "generalspec" edge. The optional arguments are used to configure the query builder of the edge.
+func (dq *DatabaseQuery) WithGeneralspec(opts ...func(*GeneralSpecQuery)) *DatabaseQuery {
+	query := (&GeneralSpecClient{config: dq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	dq.withGeneralspec = query
 	return dq
 }
 
@@ -409,12 +445,13 @@ func (dq *DatabaseQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Dat
 		nodes       = []*Database{}
 		withFKs     = dq.withFKs
 		_spec       = dq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			dq.withService != nil,
 			dq.withProject != nil,
+			dq.withGeneralspec != nil,
 		}
 	)
-	if dq.withService != nil || dq.withProject != nil {
+	if dq.withService != nil || dq.withProject != nil || dq.withGeneralspec != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -447,6 +484,12 @@ func (dq *DatabaseQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Dat
 	if query := dq.withProject; query != nil {
 		if err := dq.loadProject(ctx, query, nodes, nil,
 			func(n *Database, e *Project) { n.Edges.Project = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := dq.withGeneralspec; query != nil {
+		if err := dq.loadGeneralspec(ctx, query, nodes, nil,
+			func(n *Database, e *GeneralSpec) { n.Edges.Generalspec = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -510,6 +553,38 @@ func (dq *DatabaseQuery) loadProject(ctx context.Context, query *ProjectQuery, n
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "project_databases" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (dq *DatabaseQuery) loadGeneralspec(ctx context.Context, query *GeneralSpecQuery, nodes []*Database, init func(*Database), assign func(*Database, *GeneralSpec)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Database)
+	for i := range nodes {
+		if nodes[i].general_spec_database == nil {
+			continue
+		}
+		fk := *nodes[i].general_spec_database
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(generalspec.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "general_spec_database" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

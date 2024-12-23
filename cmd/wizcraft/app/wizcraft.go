@@ -2,6 +2,7 @@ package app
 
 import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/migrate"
 	"MSaaS-Framework/MSaaS/pkg/crub"
 	"context"
 	"fmt"
@@ -100,13 +101,17 @@ func StartServer() {
 		host, dbPort, user, dbname, password)
 
 	// ent 초기화
-	client, err := ent.Open("postgres", postgresDSN)
+	DBClient, err := ent.Open("postgres", postgresDSN)
 	if err != nil {
 		log.Fatalf("failed opening connection to postgres: %v", err)
 	}
-	defer client.Close()
+	defer DBClient.Close()
 	// Run the auto migration tool.
-	if err := client.Schema.Create(context.Background()); err != nil {
+	if err := DBClient.Schema.Create(
+		context.Background(),
+		migrate.WithDropIndex(true),  // 기존 인덱스를 삭제
+		migrate.WithDropColumn(true), // 기존 컬럼을 삭제
+	); err != nil {
 		log.Fatalf("failed creating schema resources: %v", err)
 	}
 
@@ -117,6 +122,9 @@ func StartServer() {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 
+	// DB 미들웨어 등록
+	router.Use(DBMiddleware(DBClient))
+
 	// 라우터에 CRUD 경로를 등록
 	RegisterRoutes(router)
 
@@ -124,5 +132,16 @@ func StartServer() {
 	log.Printf("반갑습니다. 서버가 포트 %s에서 실행 중입니다.", webPort)
 	if err := router.Run(":" + webPort); err != nil {
 		log.Fatalf("서버 시작 실패: %v", err)
+	}
+}
+
+const DbClientKey = "dbClient"
+
+// DB 미들웨어
+func DBMiddleware(dbClient *ent.Client) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 요청의 Gin 컨텍스트에 DBClient를 저장
+		c.Set(DbClientKey, dbClient)
+		c.Next()
 	}
 }

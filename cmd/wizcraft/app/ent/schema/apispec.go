@@ -22,5 +22,7 @@ func (APISpec) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("service", Service.Type).Ref("apispec").Unique(),
 		edge.From("project", Project.Type).Ref("apispecs").Unique(),
+		edge.From("generalspec", GeneralSpec.Type).
+			Ref("apispec").Unique(), // 역참조 설정
 	}
 }

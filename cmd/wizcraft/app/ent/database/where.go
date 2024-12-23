@@ -311,6 +311,29 @@ func HasProjectWith(preds ...predicate.Project) predicate.Database {
 	})
 }
 
+// HasGeneralspec applies the HasEdge predicate on the "generalspec" edge.
+func HasGeneralspec() predicate.Database {
+	return predicate.Database(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, GeneralspecTable, GeneralspecColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasGeneralspecWith applies the HasEdge predicate on the "generalspec" edge with a given conditions (other predicates).
+func HasGeneralspecWith(preds ...predicate.GeneralSpec) predicate.Database {
+	return predicate.Database(func(s *sql.Selector) {
+		step := newGeneralspecStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Database) predicate.Database {
 	return predicate.Database(sql.AndPredicates(predicates...))

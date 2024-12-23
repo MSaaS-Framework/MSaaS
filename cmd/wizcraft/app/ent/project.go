@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"fmt"
 	"strings"
@@ -19,8 +20,9 @@ type Project struct {
 	ID uuid.UUID `json:"id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ProjectQuery when eager-loading is set.
-	Edges        ProjectEdges `json:"edges"`
-	selectValues sql.SelectValues
+	Edges                ProjectEdges `json:"edges"`
+	general_spec_project *int
+	selectValues         sql.SelectValues
 }
 
 // ProjectEdges holds the relations/edges for other nodes in the graph.
@@ -31,9 +33,11 @@ type ProjectEdges struct {
 	Databases []*Database `json:"databases,omitempty"`
 	// Apispecs holds the value of the apispecs edge.
 	Apispecs []*APISpec `json:"apispecs,omitempty"`
+	// Generalspec holds the value of the generalspec edge.
+	Generalspec *GeneralSpec `json:"generalspec,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // ServicesOrErr returns the Services value or an error if the edge
@@ -63,6 +67,17 @@ func (e ProjectEdges) ApispecsOrErr() ([]*APISpec, error) {
 	return nil, &NotLoadedError{edge: "apispecs"}
 }
 
+// GeneralspecOrErr returns the Generalspec value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ProjectEdges) GeneralspecOrErr() (*GeneralSpec, error) {
+	if e.Generalspec != nil {
+		return e.Generalspec, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: generalspec.Label}
+	}
+	return nil, &NotLoadedError{edge: "generalspec"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Project) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -70,6 +85,8 @@ func (*Project) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case project.FieldID:
 			values[i] = new(uuid.UUID)
+		case project.ForeignKeys[0]: // general_spec_project
+			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -90,6 +107,13 @@ func (pr *Project) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value != nil {
 				pr.ID = *value
+			}
+		case project.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field general_spec_project", value)
+			} else if value.Valid {
+				pr.general_spec_project = new(int)
+				*pr.general_spec_project = int(value.Int64)
 			}
 		default:
 			pr.selectValues.Set(columns[i], values[i])
@@ -117,6 +141,11 @@ func (pr *Project) QueryDatabases() *DatabaseQuery {
 // QueryApispecs queries the "apispecs" edge of the Project entity.
 func (pr *Project) QueryApispecs() *APISpecQuery {
 	return NewProjectClient(pr.config).QueryApispecs(pr)
+}
+
+// QueryGeneralspec queries the "generalspec" edge of the Project entity.
+func (pr *Project) QueryGeneralspec() *GeneralSpecQuery {
+	return NewProjectClient(pr.config).QueryGeneralspec(pr)
 }
 
 // Update returns a builder for updating this Project.

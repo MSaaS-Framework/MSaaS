@@ -4,6 +4,7 @@ package ent
 
 import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/apispec"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"context"
@@ -78,6 +79,25 @@ func (asc *APISpecCreate) SetNillableProjectID(id *uuid.UUID) *APISpecCreate {
 // SetProject sets the "project" edge to the Project entity.
 func (asc *APISpecCreate) SetProject(p *Project) *APISpecCreate {
 	return asc.SetProjectID(p.ID)
+}
+
+// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
+func (asc *APISpecCreate) SetGeneralspecID(id int) *APISpecCreate {
+	asc.mutation.SetGeneralspecID(id)
+	return asc
+}
+
+// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
+func (asc *APISpecCreate) SetNillableGeneralspecID(id *int) *APISpecCreate {
+	if id != nil {
+		asc = asc.SetGeneralspecID(*id)
+	}
+	return asc
+}
+
+// SetGeneralspec sets the "generalspec" edge to the GeneralSpec entity.
+func (asc *APISpecCreate) SetGeneralspec(g *GeneralSpec) *APISpecCreate {
+	return asc.SetGeneralspecID(g.ID)
 }
 
 // Mutation returns the APISpecMutation object of the builder.
@@ -197,6 +217,23 @@ func (asc *APISpecCreate) createSpec() (*APISpec, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.project_apispecs = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := asc.mutation.GeneralspecIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   apispec.GeneralspecTable,
+			Columns: []string{apispec.GeneralspecColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.general_spec_apispec = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

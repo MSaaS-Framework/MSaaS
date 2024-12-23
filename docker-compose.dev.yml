@@ -33,6 +33,7 @@ services:
     volumes:
       # 로컬 소스 디렉토리와 컨테이너의 /app 디렉토리를 바인딩
       - ./:/app
+      - ${WIZCRAFT_VOLUME}:/msaas
     networks:
       - msaas_network
     ports:

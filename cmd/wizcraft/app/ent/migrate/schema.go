@@ -12,6 +12,7 @@ var (
 	APISpecsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
 		{Name: "openapi_spec", Type: field.TypeJSON},
+		{Name: "general_spec_apispec", Type: field.TypeInt, Unique: true, Nullable: true},
 		{Name: "project_apispecs", Type: field.TypeUUID, Nullable: true},
 		{Name: "service_apispec", Type: field.TypeUUID, Unique: true, Nullable: true},
 	}
@@ -22,14 +23,20 @@ var (
 		PrimaryKey: []*schema.Column{APISpecsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "api_specs_projects_apispecs",
+				Symbol:     "api_specs_general_specs_apispec",
 				Columns:    []*schema.Column{APISpecsColumns[2]},
+				RefColumns: []*schema.Column{GeneralSpecsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "api_specs_projects_apispecs",
+				Columns:    []*schema.Column{APISpecsColumns[3]},
 				RefColumns: []*schema.Column{ProjectsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "api_specs_services_apispec",
-				Columns:    []*schema.Column{APISpecsColumns[3]},
+				Columns:    []*schema.Column{APISpecsColumns[4]},
 				RefColumns: []*schema.Column{ServicesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -41,6 +48,7 @@ var (
 		{Name: "connection_path", Type: field.TypeString},
 		{Name: "password", Type: field.TypeString},
 		{Name: "db_type", Type: field.TypeString},
+		{Name: "general_spec_database", Type: field.TypeInt, Unique: true, Nullable: true},
 		{Name: "project_databases", Type: field.TypeUUID, Nullable: true},
 		{Name: "service_databases", Type: field.TypeUUID, Nullable: true},
 	}
@@ -51,14 +59,20 @@ var (
 		PrimaryKey: []*schema.Column{DatabasesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "databases_projects_databases",
+				Symbol:     "databases_general_specs_database",
 				Columns:    []*schema.Column{DatabasesColumns[4]},
+				RefColumns: []*schema.Column{GeneralSpecsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "databases_projects_databases",
+				Columns:    []*schema.Column{DatabasesColumns[5]},
 				RefColumns: []*schema.Column{ProjectsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "databases_services_databases",
-				Columns:    []*schema.Column{DatabasesColumns[5]},
+				Columns:    []*schema.Column{DatabasesColumns[6]},
 				RefColumns: []*schema.Column{ServicesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -72,56 +86,36 @@ var (
 		{Name: "type", Type: field.TypeString},
 		{Name: "status", Type: field.TypeString, Default: "created"},
 		{Name: "description", Type: field.TypeString},
-		{Name: "general_spec_service", Type: field.TypeUUID, Nullable: true},
-		{Name: "general_spec_database", Type: field.TypeUUID, Nullable: true},
-		{Name: "general_spec_apispec", Type: field.TypeUUID, Nullable: true},
-		{Name: "general_spec_project", Type: field.TypeUUID, Nullable: true},
 	}
 	// GeneralSpecsTable holds the schema information for the "general_specs" table.
 	GeneralSpecsTable = &schema.Table{
 		Name:       "general_specs",
 		Columns:    GeneralSpecsColumns,
 		PrimaryKey: []*schema.Column{GeneralSpecsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "general_specs_services_service",
-				Columns:    []*schema.Column{GeneralSpecsColumns[6]},
-				RefColumns: []*schema.Column{ServicesColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-			{
-				Symbol:     "general_specs_databases_database",
-				Columns:    []*schema.Column{GeneralSpecsColumns[7]},
-				RefColumns: []*schema.Column{DatabasesColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-			{
-				Symbol:     "general_specs_api_specs_apispec",
-				Columns:    []*schema.Column{GeneralSpecsColumns[8]},
-				RefColumns: []*schema.Column{APISpecsColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-			{
-				Symbol:     "general_specs_projects_project",
-				Columns:    []*schema.Column{GeneralSpecsColumns[9]},
-				RefColumns: []*schema.Column{ProjectsColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-		},
 	}
 	// ProjectsColumns holds the columns for the "projects" table.
 	ProjectsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "general_spec_project", Type: field.TypeInt, Unique: true, Nullable: true},
 	}
 	// ProjectsTable holds the schema information for the "projects" table.
 	ProjectsTable = &schema.Table{
 		Name:       "projects",
 		Columns:    ProjectsColumns,
 		PrimaryKey: []*schema.Column{ProjectsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "projects_general_specs_project",
+				Columns:    []*schema.Column{ProjectsColumns[1]},
+				RefColumns: []*schema.Column{GeneralSpecsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// ServicesColumns holds the columns for the "services" table.
 	ServicesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "general_spec_service", Type: field.TypeInt, Unique: true, Nullable: true},
 		{Name: "project_services", Type: field.TypeUUID, Nullable: true},
 	}
 	// ServicesTable holds the schema information for the "services" table.
@@ -131,8 +125,14 @@ var (
 		PrimaryKey: []*schema.Column{ServicesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "services_projects_services",
+				Symbol:     "services_general_specs_service",
 				Columns:    []*schema.Column{ServicesColumns[1]},
+				RefColumns: []*schema.Column{GeneralSpecsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "services_projects_services",
+				Columns:    []*schema.Column{ServicesColumns[2]},
 				RefColumns: []*schema.Column{ProjectsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -160,13 +160,13 @@ var (
 )
 
 func init() {
-	APISpecsTable.ForeignKeys[0].RefTable = ProjectsTable
-	APISpecsTable.ForeignKeys[1].RefTable = ServicesTable
-	DatabasesTable.ForeignKeys[0].RefTable = ProjectsTable
-	DatabasesTable.ForeignKeys[1].RefTable = ServicesTable
-	GeneralSpecsTable.ForeignKeys[0].RefTable = ServicesTable
-	GeneralSpecsTable.ForeignKeys[1].RefTable = DatabasesTable
-	GeneralSpecsTable.ForeignKeys[2].RefTable = APISpecsTable
-	GeneralSpecsTable.ForeignKeys[3].RefTable = ProjectsTable
-	ServicesTable.ForeignKeys[0].RefTable = ProjectsTable
+	APISpecsTable.ForeignKeys[0].RefTable = GeneralSpecsTable
+	APISpecsTable.ForeignKeys[1].RefTable = ProjectsTable
+	APISpecsTable.ForeignKeys[2].RefTable = ServicesTable
+	DatabasesTable.ForeignKeys[0].RefTable = GeneralSpecsTable
+	DatabasesTable.ForeignKeys[1].RefTable = ProjectsTable
+	DatabasesTable.ForeignKeys[2].RefTable = ServicesTable
+	ProjectsTable.ForeignKeys[0].RefTable = GeneralSpecsTable
+	ServicesTable.ForeignKeys[0].RefTable = GeneralSpecsTable
+	ServicesTable.ForeignKeys[1].RefTable = ProjectsTable
 }

@@ -1,9 +1,12 @@
 package base
 
 import (
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent"
+	"errors"
 	"fmt"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 )
 
@@ -14,4 +17,18 @@ func Run(command *cobra.Command) int {
 		return 1
 	}
 	return 0
+}
+
+func GetDBClientFromContext(c *gin.Context) (*ent.Client, error) {
+	dbClient, exists := c.Get("dbClient")
+	if !exists {
+		return nil, errors.New("database connection not available")
+	}
+
+	// DBClient를 ent.Client 타입으로 캐스팅
+	client, ok := dbClient.(*ent.Client)
+	if !ok {
+		return nil, errors.New("invalid database connection")
+	}
+	return client, nil
 }

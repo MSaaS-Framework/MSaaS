@@ -25,5 +25,7 @@ func (Database) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("service", Service.Type).Ref("databases").Unique(),
 		edge.From("project", Project.Type).Ref("databases").Unique(),
+		edge.From("generalspec", GeneralSpec.Type).
+			Ref("database").Unique(), // 역참조 설정
 	}
 }

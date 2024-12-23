@@ -8,7 +8,6 @@ type Project struct {
 	General *GeneralSpec
 
 	User       *User
-	HostPath   string
 	GitHubRepo string
 
 	Services  map[string]uuid.UUID

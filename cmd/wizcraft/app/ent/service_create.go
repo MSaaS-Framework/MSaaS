@@ -5,6 +5,7 @@ package ent
 import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/apispec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/database"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"context"
 	"fmt"
@@ -67,6 +68,25 @@ func (sc *ServiceCreate) SetNillableApispecID(id *uuid.UUID) *ServiceCreate {
 // SetApispec sets the "apispec" edge to the APISpec entity.
 func (sc *ServiceCreate) SetApispec(a *APISpec) *ServiceCreate {
 	return sc.SetApispecID(a.ID)
+}
+
+// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
+func (sc *ServiceCreate) SetGeneralspecID(id int) *ServiceCreate {
+	sc.mutation.SetGeneralspecID(id)
+	return sc
+}
+
+// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
+func (sc *ServiceCreate) SetNillableGeneralspecID(id *int) *ServiceCreate {
+	if id != nil {
+		sc = sc.SetGeneralspecID(*id)
+	}
+	return sc
+}
+
+// SetGeneralspec sets the "generalspec" edge to the GeneralSpec entity.
+func (sc *ServiceCreate) SetGeneralspec(g *GeneralSpec) *ServiceCreate {
+	return sc.SetGeneralspecID(g.ID)
 }
 
 // Mutation returns the ServiceMutation object of the builder.
@@ -177,6 +197,23 @@ func (sc *ServiceCreate) createSpec() (*Service, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := sc.mutation.GeneralspecIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   service.GeneralspecTable,
+			Columns: []string{service.GeneralspecColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.general_spec_service = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
