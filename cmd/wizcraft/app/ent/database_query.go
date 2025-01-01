@@ -6,7 +6,6 @@ import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/database"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/predicate"
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"context"
 	"fmt"
@@ -27,7 +26,6 @@ type DatabaseQuery struct {
 	inters          []Interceptor
 	predicates      []predicate.Database
 	withService     *ServiceQuery
-	withProject     *ProjectQuery
 	withGeneralspec *GeneralSpecQuery
 	withFKs         bool
 	// intermediate query (i.e. traversal path).
@@ -81,28 +79,6 @@ func (dq *DatabaseQuery) QueryService() *ServiceQuery {
 			sqlgraph.From(database.Table, database.FieldID, selector),
 			sqlgraph.To(service.Table, service.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, database.ServiceTable, database.ServiceColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(dq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryProject chains the current query on the "project" edge.
-func (dq *DatabaseQuery) QueryProject() *ProjectQuery {
-	query := (&ProjectClient{config: dq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := dq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := dq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(database.Table, database.FieldID, selector),
-			sqlgraph.To(project.Table, project.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, database.ProjectTable, database.ProjectColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(dq.driver.Dialect(), step)
 		return fromU, nil
@@ -325,7 +301,6 @@ func (dq *DatabaseQuery) Clone() *DatabaseQuery {
 		inters:          append([]Interceptor{}, dq.inters...),
 		predicates:      append([]predicate.Database{}, dq.predicates...),
 		withService:     dq.withService.Clone(),
-		withProject:     dq.withProject.Clone(),
 		withGeneralspec: dq.withGeneralspec.Clone(),
 		// clone intermediate query.
 		sql:  dq.sql.Clone(),
@@ -341,17 +316,6 @@ func (dq *DatabaseQuery) WithService(opts ...func(*ServiceQuery)) *DatabaseQuery
 		opt(query)
 	}
 	dq.withService = query
-	return dq
-}
-
-// WithProject tells the query-builder to eager-load the nodes that are connected to
-// the "project" edge. The optional arguments are used to configure the query builder of the edge.
-func (dq *DatabaseQuery) WithProject(opts ...func(*ProjectQuery)) *DatabaseQuery {
-	query := (&ProjectClient{config: dq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	dq.withProject = query
 	return dq
 }
 
@@ -445,13 +409,12 @@ func (dq *DatabaseQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Dat
 		nodes       = []*Database{}
 		withFKs     = dq.withFKs
 		_spec       = dq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [2]bool{
 			dq.withService != nil,
-			dq.withProject != nil,
 			dq.withGeneralspec != nil,
 		}
 	)
-	if dq.withService != nil || dq.withProject != nil || dq.withGeneralspec != nil {
+	if dq.withService != nil || dq.withGeneralspec != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -478,12 +441,6 @@ func (dq *DatabaseQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Dat
 	if query := dq.withService; query != nil {
 		if err := dq.loadService(ctx, query, nodes, nil,
 			func(n *Database, e *Service) { n.Edges.Service = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := dq.withProject; query != nil {
-		if err := dq.loadProject(ctx, query, nodes, nil,
-			func(n *Database, e *Project) { n.Edges.Project = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -521,38 +478,6 @@ func (dq *DatabaseQuery) loadService(ctx context.Context, query *ServiceQuery, n
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "service_databases" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
-func (dq *DatabaseQuery) loadProject(ctx context.Context, query *ProjectQuery, nodes []*Database, init func(*Database), assign func(*Database, *Project)) error {
-	ids := make([]uuid.UUID, 0, len(nodes))
-	nodeids := make(map[uuid.UUID][]*Database)
-	for i := range nodes {
-		if nodes[i].project_databases == nil {
-			continue
-		}
-		fk := *nodes[i].project_databases
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(project.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "project_databases" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

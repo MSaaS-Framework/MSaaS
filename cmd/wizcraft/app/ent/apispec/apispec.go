@@ -17,8 +17,6 @@ const (
 	FieldOpenapiSpec = "openapi_spec"
 	// EdgeService holds the string denoting the service edge name in mutations.
 	EdgeService = "service"
-	// EdgeProject holds the string denoting the project edge name in mutations.
-	EdgeProject = "project"
 	// EdgeGeneralspec holds the string denoting the generalspec edge name in mutations.
 	EdgeGeneralspec = "generalspec"
 	// Table holds the table name of the apispec in the database.
@@ -30,13 +28,6 @@ const (
 	ServiceInverseTable = "services"
 	// ServiceColumn is the table column denoting the service relation/edge.
 	ServiceColumn = "service_apispec"
-	// ProjectTable is the table that holds the project relation/edge.
-	ProjectTable = "api_specs"
-	// ProjectInverseTable is the table name for the Project entity.
-	// It exists in this package in order to avoid circular dependency with the "project" package.
-	ProjectInverseTable = "projects"
-	// ProjectColumn is the table column denoting the project relation/edge.
-	ProjectColumn = "project_apispecs"
 	// GeneralspecTable is the table that holds the generalspec relation/edge.
 	GeneralspecTable = "api_specs"
 	// GeneralspecInverseTable is the table name for the GeneralSpec entity.
@@ -56,7 +47,6 @@ var Columns = []string{
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"general_spec_apispec",
-	"project_apispecs",
 	"service_apispec",
 }
 
@@ -95,13 +85,6 @@ func ByServiceField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByProjectField orders the results by project field.
-func ByProjectField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newProjectStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByGeneralspecField orders the results by generalspec field.
 func ByGeneralspecField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -113,13 +96,6 @@ func newServiceStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ServiceInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, true, ServiceTable, ServiceColumn),
-	)
-}
-func newProjectStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ProjectInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, ProjectTable, ProjectColumn),
 	)
 }
 func newGeneralspecStep() *sqlgraph.Step {

@@ -15,6 +15,8 @@ const (
 	FieldID = "id"
 	// FieldUUID holds the string denoting the uuid field in the database.
 	FieldUUID = "uuid"
+	// FieldProjectUUID holds the string denoting the project_uuid field in the database.
+	FieldProjectUUID = "project_uuid"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// FieldType holds the string denoting the type field in the database.
@@ -23,16 +25,25 @@ const (
 	FieldStatus = "status"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
+	// EdgeProject holds the string denoting the project edge name in mutations.
+	EdgeProject = "project"
 	// EdgeService holds the string denoting the service edge name in mutations.
 	EdgeService = "service"
 	// EdgeDatabase holds the string denoting the database edge name in mutations.
 	EdgeDatabase = "database"
 	// EdgeApispec holds the string denoting the apispec edge name in mutations.
 	EdgeApispec = "apispec"
-	// EdgeProject holds the string denoting the project edge name in mutations.
-	EdgeProject = "project"
+	// EdgePermissions holds the string denoting the permissions edge name in mutations.
+	EdgePermissions = "permissions"
 	// Table holds the table name of the generalspec in the database.
 	Table = "general_specs"
+	// ProjectTable is the table that holds the project relation/edge.
+	ProjectTable = "general_specs"
+	// ProjectInverseTable is the table name for the Project entity.
+	// It exists in this package in order to avoid circular dependency with the "project" package.
+	ProjectInverseTable = "projects"
+	// ProjectColumn is the table column denoting the project relation/edge.
+	ProjectColumn = "project_general_specs"
 	// ServiceTable is the table that holds the service relation/edge.
 	ServiceTable = "services"
 	// ServiceInverseTable is the table name for the Service entity.
@@ -54,29 +65,41 @@ const (
 	ApispecInverseTable = "api_specs"
 	// ApispecColumn is the table column denoting the apispec relation/edge.
 	ApispecColumn = "general_spec_apispec"
-	// ProjectTable is the table that holds the project relation/edge.
-	ProjectTable = "projects"
-	// ProjectInverseTable is the table name for the Project entity.
-	// It exists in this package in order to avoid circular dependency with the "project" package.
-	ProjectInverseTable = "projects"
-	// ProjectColumn is the table column denoting the project relation/edge.
-	ProjectColumn = "general_spec_project"
+	// PermissionsTable is the table that holds the permissions relation/edge.
+	PermissionsTable = "user_general_spec_permissions"
+	// PermissionsInverseTable is the table name for the UserGeneralSpecPermissions entity.
+	// It exists in this package in order to avoid circular dependency with the "usergeneralspecpermissions" package.
+	PermissionsInverseTable = "user_general_spec_permissions"
+	// PermissionsColumn is the table column denoting the permissions relation/edge.
+	PermissionsColumn = "general_spec_permissions"
 )
 
 // Columns holds all SQL columns for generalspec fields.
 var Columns = []string{
 	FieldID,
 	FieldUUID,
+	FieldProjectUUID,
 	FieldName,
 	FieldType,
 	FieldStatus,
 	FieldDescription,
 }
 
+// ForeignKeys holds the SQL foreign-keys that are owned by the "general_specs"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"project_general_specs",
+}
+
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -103,6 +126,11 @@ func ByUUID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUUID, opts...).ToFunc()
 }
 
+// ByProjectUUID orders the results by the project_uuid field.
+func ByProjectUUID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProjectUUID, opts...).ToFunc()
+}
+
 // ByName orders the results by the name field.
 func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
@@ -121,6 +149,13 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 // ByDescription orders the results by the description field.
 func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+}
+
+// ByProjectField orders the results by project field.
+func ByProjectField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newProjectStep(), sql.OrderByField(field, opts...))
+	}
 }
 
 // ByServiceField orders the results by service field.
@@ -144,11 +179,25 @@ func ByApispecField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByProjectField orders the results by project field.
-func ByProjectField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByPermissionsCount orders the results by permissions count.
+func ByPermissionsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newProjectStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborsCount(s, newPermissionsStep(), opts...)
 	}
+}
+
+// ByPermissions orders the results by permissions terms.
+func ByPermissions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPermissionsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newProjectStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ProjectInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, ProjectTable, ProjectColumn),
+	)
 }
 func newServiceStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
@@ -171,10 +220,10 @@ func newApispecStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2O, false, ApispecTable, ApispecColumn),
 	)
 }
-func newProjectStep() *sqlgraph.Step {
+func newPermissionsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ProjectInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, ProjectTable, ProjectColumn),
+		sqlgraph.To(PermissionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PermissionsTable, PermissionsColumn),
 	)
 }

@@ -9,10 +9,13 @@ import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/predicate"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/user"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/usergeneralspecpermissions"
 	"context"
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -28,12 +31,13 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeAPISpec     = "APISpec"
-	TypeDatabase    = "Database"
-	TypeGeneralSpec = "GeneralSpec"
-	TypeProject     = "Project"
-	TypeService     = "Service"
-	TypeUser        = "User"
+	TypeAPISpec                    = "APISpec"
+	TypeDatabase                   = "Database"
+	TypeGeneralSpec                = "GeneralSpec"
+	TypeProject                    = "Project"
+	TypeService                    = "Service"
+	TypeUser                       = "User"
+	TypeUserGeneralSpecPermissions = "UserGeneralSpecPermissions"
 )
 
 // APISpecMutation represents an operation that mutates the APISpec nodes in the graph.
@@ -47,8 +51,6 @@ type APISpecMutation struct {
 	clearedFields      map[string]struct{}
 	service            *uuid.UUID
 	clearedservice     bool
-	project            *uuid.UUID
-	clearedproject     bool
 	generalspec        *int
 	clearedgeneralspec bool
 	done               bool
@@ -250,45 +252,6 @@ func (m *APISpecMutation) ResetService() {
 	m.clearedservice = false
 }
 
-// SetProjectID sets the "project" edge to the Project entity by id.
-func (m *APISpecMutation) SetProjectID(id uuid.UUID) {
-	m.project = &id
-}
-
-// ClearProject clears the "project" edge to the Project entity.
-func (m *APISpecMutation) ClearProject() {
-	m.clearedproject = true
-}
-
-// ProjectCleared reports if the "project" edge to the Project entity was cleared.
-func (m *APISpecMutation) ProjectCleared() bool {
-	return m.clearedproject
-}
-
-// ProjectID returns the "project" edge ID in the mutation.
-func (m *APISpecMutation) ProjectID() (id uuid.UUID, exists bool) {
-	if m.project != nil {
-		return *m.project, true
-	}
-	return
-}
-
-// ProjectIDs returns the "project" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// ProjectID instead. It exists only for internal usage by the builders.
-func (m *APISpecMutation) ProjectIDs() (ids []uuid.UUID) {
-	if id := m.project; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetProject resets all changes to the "project" edge.
-func (m *APISpecMutation) ResetProject() {
-	m.project = nil
-	m.clearedproject = false
-}
-
 // SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by id.
 func (m *APISpecMutation) SetGeneralspecID(id int) {
 	m.generalspec = &id
@@ -461,12 +424,9 @@ func (m *APISpecMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *APISpecMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 2)
 	if m.service != nil {
 		edges = append(edges, apispec.EdgeService)
-	}
-	if m.project != nil {
-		edges = append(edges, apispec.EdgeProject)
 	}
 	if m.generalspec != nil {
 		edges = append(edges, apispec.EdgeGeneralspec)
@@ -482,10 +442,6 @@ func (m *APISpecMutation) AddedIDs(name string) []ent.Value {
 		if id := m.service; id != nil {
 			return []ent.Value{*id}
 		}
-	case apispec.EdgeProject:
-		if id := m.project; id != nil {
-			return []ent.Value{*id}
-		}
 	case apispec.EdgeGeneralspec:
 		if id := m.generalspec; id != nil {
 			return []ent.Value{*id}
@@ -496,7 +452,7 @@ func (m *APISpecMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *APISpecMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 2)
 	return edges
 }
 
@@ -508,12 +464,9 @@ func (m *APISpecMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *APISpecMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 2)
 	if m.clearedservice {
 		edges = append(edges, apispec.EdgeService)
-	}
-	if m.clearedproject {
-		edges = append(edges, apispec.EdgeProject)
 	}
 	if m.clearedgeneralspec {
 		edges = append(edges, apispec.EdgeGeneralspec)
@@ -527,8 +480,6 @@ func (m *APISpecMutation) EdgeCleared(name string) bool {
 	switch name {
 	case apispec.EdgeService:
 		return m.clearedservice
-	case apispec.EdgeProject:
-		return m.clearedproject
 	case apispec.EdgeGeneralspec:
 		return m.clearedgeneralspec
 	}
@@ -541,9 +492,6 @@ func (m *APISpecMutation) ClearEdge(name string) error {
 	switch name {
 	case apispec.EdgeService:
 		m.ClearService()
-		return nil
-	case apispec.EdgeProject:
-		m.ClearProject()
 		return nil
 	case apispec.EdgeGeneralspec:
 		m.ClearGeneralspec()
@@ -558,9 +506,6 @@ func (m *APISpecMutation) ResetEdge(name string) error {
 	switch name {
 	case apispec.EdgeService:
 		m.ResetService()
-		return nil
-	case apispec.EdgeProject:
-		m.ResetProject()
 		return nil
 	case apispec.EdgeGeneralspec:
 		m.ResetGeneralspec()
@@ -581,8 +526,6 @@ type DatabaseMutation struct {
 	clearedFields      map[string]struct{}
 	service            *uuid.UUID
 	clearedservice     bool
-	project            *uuid.UUID
-	clearedproject     bool
 	generalspec        *int
 	clearedgeneralspec bool
 	done               bool
@@ -841,45 +784,6 @@ func (m *DatabaseMutation) ResetService() {
 	m.clearedservice = false
 }
 
-// SetProjectID sets the "project" edge to the Project entity by id.
-func (m *DatabaseMutation) SetProjectID(id uuid.UUID) {
-	m.project = &id
-}
-
-// ClearProject clears the "project" edge to the Project entity.
-func (m *DatabaseMutation) ClearProject() {
-	m.clearedproject = true
-}
-
-// ProjectCleared reports if the "project" edge to the Project entity was cleared.
-func (m *DatabaseMutation) ProjectCleared() bool {
-	return m.clearedproject
-}
-
-// ProjectID returns the "project" edge ID in the mutation.
-func (m *DatabaseMutation) ProjectID() (id uuid.UUID, exists bool) {
-	if m.project != nil {
-		return *m.project, true
-	}
-	return
-}
-
-// ProjectIDs returns the "project" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// ProjectID instead. It exists only for internal usage by the builders.
-func (m *DatabaseMutation) ProjectIDs() (ids []uuid.UUID) {
-	if id := m.project; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetProject resets all changes to the "project" edge.
-func (m *DatabaseMutation) ResetProject() {
-	m.project = nil
-	m.clearedproject = false
-}
-
 // SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by id.
 func (m *DatabaseMutation) SetGeneralspecID(id int) {
 	m.generalspec = &id
@@ -1086,12 +990,9 @@ func (m *DatabaseMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *DatabaseMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 2)
 	if m.service != nil {
 		edges = append(edges, database.EdgeService)
-	}
-	if m.project != nil {
-		edges = append(edges, database.EdgeProject)
 	}
 	if m.generalspec != nil {
 		edges = append(edges, database.EdgeGeneralspec)
@@ -1107,10 +1008,6 @@ func (m *DatabaseMutation) AddedIDs(name string) []ent.Value {
 		if id := m.service; id != nil {
 			return []ent.Value{*id}
 		}
-	case database.EdgeProject:
-		if id := m.project; id != nil {
-			return []ent.Value{*id}
-		}
 	case database.EdgeGeneralspec:
 		if id := m.generalspec; id != nil {
 			return []ent.Value{*id}
@@ -1121,7 +1018,7 @@ func (m *DatabaseMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *DatabaseMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 2)
 	return edges
 }
 
@@ -1133,12 +1030,9 @@ func (m *DatabaseMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *DatabaseMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 2)
 	if m.clearedservice {
 		edges = append(edges, database.EdgeService)
-	}
-	if m.clearedproject {
-		edges = append(edges, database.EdgeProject)
 	}
 	if m.clearedgeneralspec {
 		edges = append(edges, database.EdgeGeneralspec)
@@ -1152,8 +1046,6 @@ func (m *DatabaseMutation) EdgeCleared(name string) bool {
 	switch name {
 	case database.EdgeService:
 		return m.clearedservice
-	case database.EdgeProject:
-		return m.clearedproject
 	case database.EdgeGeneralspec:
 		return m.clearedgeneralspec
 	}
@@ -1166,9 +1058,6 @@ func (m *DatabaseMutation) ClearEdge(name string) error {
 	switch name {
 	case database.EdgeService:
 		m.ClearService()
-		return nil
-	case database.EdgeProject:
-		m.ClearProject()
 		return nil
 	case database.EdgeGeneralspec:
 		m.ClearGeneralspec()
@@ -1184,9 +1073,6 @@ func (m *DatabaseMutation) ResetEdge(name string) error {
 	case database.EdgeService:
 		m.ResetService()
 		return nil
-	case database.EdgeProject:
-		m.ResetProject()
-		return nil
 	case database.EdgeGeneralspec:
 		m.ResetGeneralspec()
 		return nil
@@ -1197,26 +1083,30 @@ func (m *DatabaseMutation) ResetEdge(name string) error {
 // GeneralSpecMutation represents an operation that mutates the GeneralSpec nodes in the graph.
 type GeneralSpecMutation struct {
 	config
-	op              Op
-	typ             string
-	id              *int
-	uuid            *uuid.UUID
-	name            *string
-	_type           *string
-	status          *string
-	description     *string
-	clearedFields   map[string]struct{}
-	service         *uuid.UUID
-	clearedservice  bool
-	database        *uuid.UUID
-	cleareddatabase bool
-	apispec         *uuid.UUID
-	clearedapispec  bool
-	project         *uuid.UUID
-	clearedproject  bool
-	done            bool
-	oldValue        func(context.Context) (*GeneralSpec, error)
-	predicates      []predicate.GeneralSpec
+	op                 Op
+	typ                string
+	id                 *int
+	uuid               *uuid.UUID
+	project_uuid       *uuid.UUID
+	name               *string
+	_type              *string
+	status             *string
+	description        *string
+	clearedFields      map[string]struct{}
+	project            *uuid.UUID
+	clearedproject     bool
+	service            *uuid.UUID
+	clearedservice     bool
+	database           *uuid.UUID
+	cleareddatabase    bool
+	apispec            *uuid.UUID
+	clearedapispec     bool
+	permissions        map[uuid.UUID]struct{}
+	removedpermissions map[uuid.UUID]struct{}
+	clearedpermissions bool
+	done               bool
+	oldValue           func(context.Context) (*GeneralSpec, error)
+	predicates         []predicate.GeneralSpec
 }
 
 var _ ent.Mutation = (*GeneralSpecMutation)(nil)
@@ -1351,6 +1241,42 @@ func (m *GeneralSpecMutation) OldUUID(ctx context.Context) (v uuid.UUID, err err
 // ResetUUID resets all changes to the "uuid" field.
 func (m *GeneralSpecMutation) ResetUUID() {
 	m.uuid = nil
+}
+
+// SetProjectUUID sets the "project_uuid" field.
+func (m *GeneralSpecMutation) SetProjectUUID(u uuid.UUID) {
+	m.project_uuid = &u
+}
+
+// ProjectUUID returns the value of the "project_uuid" field in the mutation.
+func (m *GeneralSpecMutation) ProjectUUID() (r uuid.UUID, exists bool) {
+	v := m.project_uuid
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProjectUUID returns the old "project_uuid" field's value of the GeneralSpec entity.
+// If the GeneralSpec object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GeneralSpecMutation) OldProjectUUID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProjectUUID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProjectUUID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProjectUUID: %w", err)
+	}
+	return oldValue.ProjectUUID, nil
+}
+
+// ResetProjectUUID resets all changes to the "project_uuid" field.
+func (m *GeneralSpecMutation) ResetProjectUUID() {
+	m.project_uuid = nil
 }
 
 // SetName sets the "name" field.
@@ -1497,6 +1423,45 @@ func (m *GeneralSpecMutation) ResetDescription() {
 	m.description = nil
 }
 
+// SetProjectID sets the "project" edge to the Project entity by id.
+func (m *GeneralSpecMutation) SetProjectID(id uuid.UUID) {
+	m.project = &id
+}
+
+// ClearProject clears the "project" edge to the Project entity.
+func (m *GeneralSpecMutation) ClearProject() {
+	m.clearedproject = true
+}
+
+// ProjectCleared reports if the "project" edge to the Project entity was cleared.
+func (m *GeneralSpecMutation) ProjectCleared() bool {
+	return m.clearedproject
+}
+
+// ProjectID returns the "project" edge ID in the mutation.
+func (m *GeneralSpecMutation) ProjectID() (id uuid.UUID, exists bool) {
+	if m.project != nil {
+		return *m.project, true
+	}
+	return
+}
+
+// ProjectIDs returns the "project" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ProjectID instead. It exists only for internal usage by the builders.
+func (m *GeneralSpecMutation) ProjectIDs() (ids []uuid.UUID) {
+	if id := m.project; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetProject resets all changes to the "project" edge.
+func (m *GeneralSpecMutation) ResetProject() {
+	m.project = nil
+	m.clearedproject = false
+}
+
 // SetServiceID sets the "service" edge to the Service entity by id.
 func (m *GeneralSpecMutation) SetServiceID(id uuid.UUID) {
 	m.service = &id
@@ -1614,43 +1579,58 @@ func (m *GeneralSpecMutation) ResetApispec() {
 	m.clearedapispec = false
 }
 
-// SetProjectID sets the "project" edge to the Project entity by id.
-func (m *GeneralSpecMutation) SetProjectID(id uuid.UUID) {
-	m.project = &id
+// AddPermissionIDs adds the "permissions" edge to the UserGeneralSpecPermissions entity by ids.
+func (m *GeneralSpecMutation) AddPermissionIDs(ids ...uuid.UUID) {
+	if m.permissions == nil {
+		m.permissions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.permissions[ids[i]] = struct{}{}
+	}
 }
 
-// ClearProject clears the "project" edge to the Project entity.
-func (m *GeneralSpecMutation) ClearProject() {
-	m.clearedproject = true
+// ClearPermissions clears the "permissions" edge to the UserGeneralSpecPermissions entity.
+func (m *GeneralSpecMutation) ClearPermissions() {
+	m.clearedpermissions = true
 }
 
-// ProjectCleared reports if the "project" edge to the Project entity was cleared.
-func (m *GeneralSpecMutation) ProjectCleared() bool {
-	return m.clearedproject
+// PermissionsCleared reports if the "permissions" edge to the UserGeneralSpecPermissions entity was cleared.
+func (m *GeneralSpecMutation) PermissionsCleared() bool {
+	return m.clearedpermissions
 }
 
-// ProjectID returns the "project" edge ID in the mutation.
-func (m *GeneralSpecMutation) ProjectID() (id uuid.UUID, exists bool) {
-	if m.project != nil {
-		return *m.project, true
+// RemovePermissionIDs removes the "permissions" edge to the UserGeneralSpecPermissions entity by IDs.
+func (m *GeneralSpecMutation) RemovePermissionIDs(ids ...uuid.UUID) {
+	if m.removedpermissions == nil {
+		m.removedpermissions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.permissions, ids[i])
+		m.removedpermissions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPermissions returns the removed IDs of the "permissions" edge to the UserGeneralSpecPermissions entity.
+func (m *GeneralSpecMutation) RemovedPermissionsIDs() (ids []uuid.UUID) {
+	for id := range m.removedpermissions {
+		ids = append(ids, id)
 	}
 	return
 }
 
-// ProjectIDs returns the "project" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// ProjectID instead. It exists only for internal usage by the builders.
-func (m *GeneralSpecMutation) ProjectIDs() (ids []uuid.UUID) {
-	if id := m.project; id != nil {
-		ids = append(ids, *id)
+// PermissionsIDs returns the "permissions" edge IDs in the mutation.
+func (m *GeneralSpecMutation) PermissionsIDs() (ids []uuid.UUID) {
+	for id := range m.permissions {
+		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetProject resets all changes to the "project" edge.
-func (m *GeneralSpecMutation) ResetProject() {
-	m.project = nil
-	m.clearedproject = false
+// ResetPermissions resets all changes to the "permissions" edge.
+func (m *GeneralSpecMutation) ResetPermissions() {
+	m.permissions = nil
+	m.clearedpermissions = false
+	m.removedpermissions = nil
 }
 
 // Where appends a list predicates to the GeneralSpecMutation builder.
@@ -1687,9 +1667,12 @@ func (m *GeneralSpecMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GeneralSpecMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.uuid != nil {
 		fields = append(fields, generalspec.FieldUUID)
+	}
+	if m.project_uuid != nil {
+		fields = append(fields, generalspec.FieldProjectUUID)
 	}
 	if m.name != nil {
 		fields = append(fields, generalspec.FieldName)
@@ -1713,6 +1696,8 @@ func (m *GeneralSpecMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case generalspec.FieldUUID:
 		return m.UUID()
+	case generalspec.FieldProjectUUID:
+		return m.ProjectUUID()
 	case generalspec.FieldName:
 		return m.Name()
 	case generalspec.FieldType:
@@ -1732,6 +1717,8 @@ func (m *GeneralSpecMutation) OldField(ctx context.Context, name string) (ent.Va
 	switch name {
 	case generalspec.FieldUUID:
 		return m.OldUUID(ctx)
+	case generalspec.FieldProjectUUID:
+		return m.OldProjectUUID(ctx)
 	case generalspec.FieldName:
 		return m.OldName(ctx)
 	case generalspec.FieldType:
@@ -1755,6 +1742,13 @@ func (m *GeneralSpecMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUUID(v)
+		return nil
+	case generalspec.FieldProjectUUID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProjectUUID(v)
 		return nil
 	case generalspec.FieldName:
 		v, ok := value.(string)
@@ -1836,6 +1830,9 @@ func (m *GeneralSpecMutation) ResetField(name string) error {
 	case generalspec.FieldUUID:
 		m.ResetUUID()
 		return nil
+	case generalspec.FieldProjectUUID:
+		m.ResetProjectUUID()
+		return nil
 	case generalspec.FieldName:
 		m.ResetName()
 		return nil
@@ -1854,7 +1851,10 @@ func (m *GeneralSpecMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *GeneralSpecMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
+	if m.project != nil {
+		edges = append(edges, generalspec.EdgeProject)
+	}
 	if m.service != nil {
 		edges = append(edges, generalspec.EdgeService)
 	}
@@ -1864,8 +1864,8 @@ func (m *GeneralSpecMutation) AddedEdges() []string {
 	if m.apispec != nil {
 		edges = append(edges, generalspec.EdgeApispec)
 	}
-	if m.project != nil {
-		edges = append(edges, generalspec.EdgeProject)
+	if m.permissions != nil {
+		edges = append(edges, generalspec.EdgePermissions)
 	}
 	return edges
 }
@@ -1874,6 +1874,10 @@ func (m *GeneralSpecMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *GeneralSpecMutation) AddedIDs(name string) []ent.Value {
 	switch name {
+	case generalspec.EdgeProject:
+		if id := m.project; id != nil {
+			return []ent.Value{*id}
+		}
 	case generalspec.EdgeService:
 		if id := m.service; id != nil {
 			return []ent.Value{*id}
@@ -1886,29 +1890,45 @@ func (m *GeneralSpecMutation) AddedIDs(name string) []ent.Value {
 		if id := m.apispec; id != nil {
 			return []ent.Value{*id}
 		}
-	case generalspec.EdgeProject:
-		if id := m.project; id != nil {
-			return []ent.Value{*id}
+	case generalspec.EdgePermissions:
+		ids := make([]ent.Value, 0, len(m.permissions))
+		for id := range m.permissions {
+			ids = append(ids, id)
 		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *GeneralSpecMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
+	if m.removedpermissions != nil {
+		edges = append(edges, generalspec.EdgePermissions)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *GeneralSpecMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case generalspec.EdgePermissions:
+		ids := make([]ent.Value, 0, len(m.removedpermissions))
+		for id := range m.removedpermissions {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *GeneralSpecMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
+	if m.clearedproject {
+		edges = append(edges, generalspec.EdgeProject)
+	}
 	if m.clearedservice {
 		edges = append(edges, generalspec.EdgeService)
 	}
@@ -1918,8 +1938,8 @@ func (m *GeneralSpecMutation) ClearedEdges() []string {
 	if m.clearedapispec {
 		edges = append(edges, generalspec.EdgeApispec)
 	}
-	if m.clearedproject {
-		edges = append(edges, generalspec.EdgeProject)
+	if m.clearedpermissions {
+		edges = append(edges, generalspec.EdgePermissions)
 	}
 	return edges
 }
@@ -1928,14 +1948,16 @@ func (m *GeneralSpecMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *GeneralSpecMutation) EdgeCleared(name string) bool {
 	switch name {
+	case generalspec.EdgeProject:
+		return m.clearedproject
 	case generalspec.EdgeService:
 		return m.clearedservice
 	case generalspec.EdgeDatabase:
 		return m.cleareddatabase
 	case generalspec.EdgeApispec:
 		return m.clearedapispec
-	case generalspec.EdgeProject:
-		return m.clearedproject
+	case generalspec.EdgePermissions:
+		return m.clearedpermissions
 	}
 	return false
 }
@@ -1944,6 +1966,9 @@ func (m *GeneralSpecMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *GeneralSpecMutation) ClearEdge(name string) error {
 	switch name {
+	case generalspec.EdgeProject:
+		m.ClearProject()
+		return nil
 	case generalspec.EdgeService:
 		m.ClearService()
 		return nil
@@ -1953,9 +1978,6 @@ func (m *GeneralSpecMutation) ClearEdge(name string) error {
 	case generalspec.EdgeApispec:
 		m.ClearApispec()
 		return nil
-	case generalspec.EdgeProject:
-		m.ClearProject()
-		return nil
 	}
 	return fmt.Errorf("unknown GeneralSpec unique edge %s", name)
 }
@@ -1964,6 +1986,9 @@ func (m *GeneralSpecMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *GeneralSpecMutation) ResetEdge(name string) error {
 	switch name {
+	case generalspec.EdgeProject:
+		m.ResetProject()
+		return nil
 	case generalspec.EdgeService:
 		m.ResetService()
 		return nil
@@ -1973,8 +1998,8 @@ func (m *GeneralSpecMutation) ResetEdge(name string) error {
 	case generalspec.EdgeApispec:
 		m.ResetApispec()
 		return nil
-	case generalspec.EdgeProject:
-		m.ResetProject()
+	case generalspec.EdgePermissions:
+		m.ResetPermissions()
 		return nil
 	}
 	return fmt.Errorf("unknown GeneralSpec edge %s", name)
@@ -1983,24 +2008,19 @@ func (m *GeneralSpecMutation) ResetEdge(name string) error {
 // ProjectMutation represents an operation that mutates the Project nodes in the graph.
 type ProjectMutation struct {
 	config
-	op                 Op
-	typ                string
-	id                 *uuid.UUID
-	clearedFields      map[string]struct{}
-	services           map[uuid.UUID]struct{}
-	removedservices    map[uuid.UUID]struct{}
-	clearedservices    bool
-	databases          map[uuid.UUID]struct{}
-	removeddatabases   map[uuid.UUID]struct{}
-	cleareddatabases   bool
-	apispecs           map[uuid.UUID]struct{}
-	removedapispecs    map[uuid.UUID]struct{}
-	clearedapispecs    bool
-	generalspec        *int
-	clearedgeneralspec bool
-	done               bool
-	oldValue           func(context.Context) (*Project, error)
-	predicates         []predicate.Project
+	op                   Op
+	typ                  string
+	id                   *uuid.UUID
+	clearedFields        map[string]struct{}
+	general_specs        map[int]struct{}
+	removedgeneral_specs map[int]struct{}
+	clearedgeneral_specs bool
+	users                map[uuid.UUID]struct{}
+	removedusers         map[uuid.UUID]struct{}
+	clearedusers         bool
+	done                 bool
+	oldValue             func(context.Context) (*Project, error)
+	predicates           []predicate.Project
 }
 
 var _ ent.Mutation = (*ProjectMutation)(nil)
@@ -2107,205 +2127,112 @@ func (m *ProjectMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 	}
 }
 
-// AddServiceIDs adds the "services" edge to the Service entity by ids.
-func (m *ProjectMutation) AddServiceIDs(ids ...uuid.UUID) {
-	if m.services == nil {
-		m.services = make(map[uuid.UUID]struct{})
+// AddGeneralSpecIDs adds the "general_specs" edge to the GeneralSpec entity by ids.
+func (m *ProjectMutation) AddGeneralSpecIDs(ids ...int) {
+	if m.general_specs == nil {
+		m.general_specs = make(map[int]struct{})
 	}
 	for i := range ids {
-		m.services[ids[i]] = struct{}{}
+		m.general_specs[ids[i]] = struct{}{}
 	}
 }
 
-// ClearServices clears the "services" edge to the Service entity.
-func (m *ProjectMutation) ClearServices() {
-	m.clearedservices = true
+// ClearGeneralSpecs clears the "general_specs" edge to the GeneralSpec entity.
+func (m *ProjectMutation) ClearGeneralSpecs() {
+	m.clearedgeneral_specs = true
 }
 
-// ServicesCleared reports if the "services" edge to the Service entity was cleared.
-func (m *ProjectMutation) ServicesCleared() bool {
-	return m.clearedservices
+// GeneralSpecsCleared reports if the "general_specs" edge to the GeneralSpec entity was cleared.
+func (m *ProjectMutation) GeneralSpecsCleared() bool {
+	return m.clearedgeneral_specs
 }
 
-// RemoveServiceIDs removes the "services" edge to the Service entity by IDs.
-func (m *ProjectMutation) RemoveServiceIDs(ids ...uuid.UUID) {
-	if m.removedservices == nil {
-		m.removedservices = make(map[uuid.UUID]struct{})
+// RemoveGeneralSpecIDs removes the "general_specs" edge to the GeneralSpec entity by IDs.
+func (m *ProjectMutation) RemoveGeneralSpecIDs(ids ...int) {
+	if m.removedgeneral_specs == nil {
+		m.removedgeneral_specs = make(map[int]struct{})
 	}
 	for i := range ids {
-		delete(m.services, ids[i])
-		m.removedservices[ids[i]] = struct{}{}
+		delete(m.general_specs, ids[i])
+		m.removedgeneral_specs[ids[i]] = struct{}{}
 	}
 }
 
-// RemovedServices returns the removed IDs of the "services" edge to the Service entity.
-func (m *ProjectMutation) RemovedServicesIDs() (ids []uuid.UUID) {
-	for id := range m.removedservices {
+// RemovedGeneralSpecs returns the removed IDs of the "general_specs" edge to the GeneralSpec entity.
+func (m *ProjectMutation) RemovedGeneralSpecsIDs() (ids []int) {
+	for id := range m.removedgeneral_specs {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ServicesIDs returns the "services" edge IDs in the mutation.
-func (m *ProjectMutation) ServicesIDs() (ids []uuid.UUID) {
-	for id := range m.services {
+// GeneralSpecsIDs returns the "general_specs" edge IDs in the mutation.
+func (m *ProjectMutation) GeneralSpecsIDs() (ids []int) {
+	for id := range m.general_specs {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetServices resets all changes to the "services" edge.
-func (m *ProjectMutation) ResetServices() {
-	m.services = nil
-	m.clearedservices = false
-	m.removedservices = nil
+// ResetGeneralSpecs resets all changes to the "general_specs" edge.
+func (m *ProjectMutation) ResetGeneralSpecs() {
+	m.general_specs = nil
+	m.clearedgeneral_specs = false
+	m.removedgeneral_specs = nil
 }
 
-// AddDatabaseIDs adds the "databases" edge to the Database entity by ids.
-func (m *ProjectMutation) AddDatabaseIDs(ids ...uuid.UUID) {
-	if m.databases == nil {
-		m.databases = make(map[uuid.UUID]struct{})
+// AddUserIDs adds the "users" edge to the User entity by ids.
+func (m *ProjectMutation) AddUserIDs(ids ...uuid.UUID) {
+	if m.users == nil {
+		m.users = make(map[uuid.UUID]struct{})
 	}
 	for i := range ids {
-		m.databases[ids[i]] = struct{}{}
+		m.users[ids[i]] = struct{}{}
 	}
 }
 
-// ClearDatabases clears the "databases" edge to the Database entity.
-func (m *ProjectMutation) ClearDatabases() {
-	m.cleareddatabases = true
+// ClearUsers clears the "users" edge to the User entity.
+func (m *ProjectMutation) ClearUsers() {
+	m.clearedusers = true
 }
 
-// DatabasesCleared reports if the "databases" edge to the Database entity was cleared.
-func (m *ProjectMutation) DatabasesCleared() bool {
-	return m.cleareddatabases
+// UsersCleared reports if the "users" edge to the User entity was cleared.
+func (m *ProjectMutation) UsersCleared() bool {
+	return m.clearedusers
 }
 
-// RemoveDatabaseIDs removes the "databases" edge to the Database entity by IDs.
-func (m *ProjectMutation) RemoveDatabaseIDs(ids ...uuid.UUID) {
-	if m.removeddatabases == nil {
-		m.removeddatabases = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		delete(m.databases, ids[i])
-		m.removeddatabases[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedDatabases returns the removed IDs of the "databases" edge to the Database entity.
-func (m *ProjectMutation) RemovedDatabasesIDs() (ids []uuid.UUID) {
-	for id := range m.removeddatabases {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// DatabasesIDs returns the "databases" edge IDs in the mutation.
-func (m *ProjectMutation) DatabasesIDs() (ids []uuid.UUID) {
-	for id := range m.databases {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetDatabases resets all changes to the "databases" edge.
-func (m *ProjectMutation) ResetDatabases() {
-	m.databases = nil
-	m.cleareddatabases = false
-	m.removeddatabases = nil
-}
-
-// AddApispecIDs adds the "apispecs" edge to the APISpec entity by ids.
-func (m *ProjectMutation) AddApispecIDs(ids ...uuid.UUID) {
-	if m.apispecs == nil {
-		m.apispecs = make(map[uuid.UUID]struct{})
+// RemoveUserIDs removes the "users" edge to the User entity by IDs.
+func (m *ProjectMutation) RemoveUserIDs(ids ...uuid.UUID) {
+	if m.removedusers == nil {
+		m.removedusers = make(map[uuid.UUID]struct{})
 	}
 	for i := range ids {
-		m.apispecs[ids[i]] = struct{}{}
+		delete(m.users, ids[i])
+		m.removedusers[ids[i]] = struct{}{}
 	}
 }
 
-// ClearApispecs clears the "apispecs" edge to the APISpec entity.
-func (m *ProjectMutation) ClearApispecs() {
-	m.clearedapispecs = true
-}
-
-// ApispecsCleared reports if the "apispecs" edge to the APISpec entity was cleared.
-func (m *ProjectMutation) ApispecsCleared() bool {
-	return m.clearedapispecs
-}
-
-// RemoveApispecIDs removes the "apispecs" edge to the APISpec entity by IDs.
-func (m *ProjectMutation) RemoveApispecIDs(ids ...uuid.UUID) {
-	if m.removedapispecs == nil {
-		m.removedapispecs = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		delete(m.apispecs, ids[i])
-		m.removedapispecs[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedApispecs returns the removed IDs of the "apispecs" edge to the APISpec entity.
-func (m *ProjectMutation) RemovedApispecsIDs() (ids []uuid.UUID) {
-	for id := range m.removedapispecs {
+// RemovedUsers returns the removed IDs of the "users" edge to the User entity.
+func (m *ProjectMutation) RemovedUsersIDs() (ids []uuid.UUID) {
+	for id := range m.removedusers {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ApispecsIDs returns the "apispecs" edge IDs in the mutation.
-func (m *ProjectMutation) ApispecsIDs() (ids []uuid.UUID) {
-	for id := range m.apispecs {
+// UsersIDs returns the "users" edge IDs in the mutation.
+func (m *ProjectMutation) UsersIDs() (ids []uuid.UUID) {
+	for id := range m.users {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetApispecs resets all changes to the "apispecs" edge.
-func (m *ProjectMutation) ResetApispecs() {
-	m.apispecs = nil
-	m.clearedapispecs = false
-	m.removedapispecs = nil
-}
-
-// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by id.
-func (m *ProjectMutation) SetGeneralspecID(id int) {
-	m.generalspec = &id
-}
-
-// ClearGeneralspec clears the "generalspec" edge to the GeneralSpec entity.
-func (m *ProjectMutation) ClearGeneralspec() {
-	m.clearedgeneralspec = true
-}
-
-// GeneralspecCleared reports if the "generalspec" edge to the GeneralSpec entity was cleared.
-func (m *ProjectMutation) GeneralspecCleared() bool {
-	return m.clearedgeneralspec
-}
-
-// GeneralspecID returns the "generalspec" edge ID in the mutation.
-func (m *ProjectMutation) GeneralspecID() (id int, exists bool) {
-	if m.generalspec != nil {
-		return *m.generalspec, true
-	}
-	return
-}
-
-// GeneralspecIDs returns the "generalspec" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// GeneralspecID instead. It exists only for internal usage by the builders.
-func (m *ProjectMutation) GeneralspecIDs() (ids []int) {
-	if id := m.generalspec; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetGeneralspec resets all changes to the "generalspec" edge.
-func (m *ProjectMutation) ResetGeneralspec() {
-	m.generalspec = nil
-	m.clearedgeneralspec = false
+// ResetUsers resets all changes to the "users" edge.
+func (m *ProjectMutation) ResetUsers() {
+	m.users = nil
+	m.clearedusers = false
+	m.removedusers = nil
 }
 
 // Where appends a list predicates to the ProjectMutation builder.
@@ -2416,18 +2343,12 @@ func (m *ProjectMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ProjectMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
-	if m.services != nil {
-		edges = append(edges, project.EdgeServices)
+	edges := make([]string, 0, 2)
+	if m.general_specs != nil {
+		edges = append(edges, project.EdgeGeneralSpecs)
 	}
-	if m.databases != nil {
-		edges = append(edges, project.EdgeDatabases)
-	}
-	if m.apispecs != nil {
-		edges = append(edges, project.EdgeApispecs)
-	}
-	if m.generalspec != nil {
-		edges = append(edges, project.EdgeGeneralspec)
+	if m.users != nil {
+		edges = append(edges, project.EdgeUsers)
 	}
 	return edges
 }
@@ -2436,43 +2357,30 @@ func (m *ProjectMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *ProjectMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case project.EdgeServices:
-		ids := make([]ent.Value, 0, len(m.services))
-		for id := range m.services {
+	case project.EdgeGeneralSpecs:
+		ids := make([]ent.Value, 0, len(m.general_specs))
+		for id := range m.general_specs {
 			ids = append(ids, id)
 		}
 		return ids
-	case project.EdgeDatabases:
-		ids := make([]ent.Value, 0, len(m.databases))
-		for id := range m.databases {
+	case project.EdgeUsers:
+		ids := make([]ent.Value, 0, len(m.users))
+		for id := range m.users {
 			ids = append(ids, id)
 		}
 		return ids
-	case project.EdgeApispecs:
-		ids := make([]ent.Value, 0, len(m.apispecs))
-		for id := range m.apispecs {
-			ids = append(ids, id)
-		}
-		return ids
-	case project.EdgeGeneralspec:
-		if id := m.generalspec; id != nil {
-			return []ent.Value{*id}
-		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ProjectMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
-	if m.removedservices != nil {
-		edges = append(edges, project.EdgeServices)
+	edges := make([]string, 0, 2)
+	if m.removedgeneral_specs != nil {
+		edges = append(edges, project.EdgeGeneralSpecs)
 	}
-	if m.removeddatabases != nil {
-		edges = append(edges, project.EdgeDatabases)
-	}
-	if m.removedapispecs != nil {
-		edges = append(edges, project.EdgeApispecs)
+	if m.removedusers != nil {
+		edges = append(edges, project.EdgeUsers)
 	}
 	return edges
 }
@@ -2481,21 +2389,15 @@ func (m *ProjectMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *ProjectMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
-	case project.EdgeServices:
-		ids := make([]ent.Value, 0, len(m.removedservices))
-		for id := range m.removedservices {
+	case project.EdgeGeneralSpecs:
+		ids := make([]ent.Value, 0, len(m.removedgeneral_specs))
+		for id := range m.removedgeneral_specs {
 			ids = append(ids, id)
 		}
 		return ids
-	case project.EdgeDatabases:
-		ids := make([]ent.Value, 0, len(m.removeddatabases))
-		for id := range m.removeddatabases {
-			ids = append(ids, id)
-		}
-		return ids
-	case project.EdgeApispecs:
-		ids := make([]ent.Value, 0, len(m.removedapispecs))
-		for id := range m.removedapispecs {
+	case project.EdgeUsers:
+		ids := make([]ent.Value, 0, len(m.removedusers))
+		for id := range m.removedusers {
 			ids = append(ids, id)
 		}
 		return ids
@@ -2505,18 +2407,12 @@ func (m *ProjectMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ProjectMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
-	if m.clearedservices {
-		edges = append(edges, project.EdgeServices)
+	edges := make([]string, 0, 2)
+	if m.clearedgeneral_specs {
+		edges = append(edges, project.EdgeGeneralSpecs)
 	}
-	if m.cleareddatabases {
-		edges = append(edges, project.EdgeDatabases)
-	}
-	if m.clearedapispecs {
-		edges = append(edges, project.EdgeApispecs)
-	}
-	if m.clearedgeneralspec {
-		edges = append(edges, project.EdgeGeneralspec)
+	if m.clearedusers {
+		edges = append(edges, project.EdgeUsers)
 	}
 	return edges
 }
@@ -2525,14 +2421,10 @@ func (m *ProjectMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *ProjectMutation) EdgeCleared(name string) bool {
 	switch name {
-	case project.EdgeServices:
-		return m.clearedservices
-	case project.EdgeDatabases:
-		return m.cleareddatabases
-	case project.EdgeApispecs:
-		return m.clearedapispecs
-	case project.EdgeGeneralspec:
-		return m.clearedgeneralspec
+	case project.EdgeGeneralSpecs:
+		return m.clearedgeneral_specs
+	case project.EdgeUsers:
+		return m.clearedusers
 	}
 	return false
 }
@@ -2541,9 +2433,6 @@ func (m *ProjectMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *ProjectMutation) ClearEdge(name string) error {
 	switch name {
-	case project.EdgeGeneralspec:
-		m.ClearGeneralspec()
-		return nil
 	}
 	return fmt.Errorf("unknown Project unique edge %s", name)
 }
@@ -2552,17 +2441,11 @@ func (m *ProjectMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *ProjectMutation) ResetEdge(name string) error {
 	switch name {
-	case project.EdgeServices:
-		m.ResetServices()
+	case project.EdgeGeneralSpecs:
+		m.ResetGeneralSpecs()
 		return nil
-	case project.EdgeDatabases:
-		m.ResetDatabases()
-		return nil
-	case project.EdgeApispecs:
-		m.ResetApispecs()
-		return nil
-	case project.EdgeGeneralspec:
-		m.ResetGeneralspec()
+	case project.EdgeUsers:
+		m.ResetUsers()
 		return nil
 	}
 	return fmt.Errorf("unknown Project edge %s", name)
@@ -3052,13 +2935,29 @@ func (m *ServiceMutation) ResetEdge(name string) error {
 // UserMutation represents an operation that mutates the User nodes in the graph.
 type UserMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*User, error)
-	predicates    []predicate.User
+	op                 Op
+	typ                string
+	id                 *uuid.UUID
+	name               *string
+	email              *string
+	password           *string
+	role               *user.Role
+	active             *bool
+	created_at         *time.Time
+	updated_at         *time.Time
+	last_login         *time.Time
+	profile_image      *string
+	github_token_hash  *string
+	clearedFields      map[string]struct{}
+	permissions        map[uuid.UUID]struct{}
+	removedpermissions map[uuid.UUID]struct{}
+	clearedpermissions bool
+	projects           map[uuid.UUID]struct{}
+	removedprojects    map[uuid.UUID]struct{}
+	clearedprojects    bool
+	done               bool
+	oldValue           func(context.Context) (*User, error)
+	predicates         []predicate.User
 }
 
 var _ ent.Mutation = (*UserMutation)(nil)
@@ -3081,7 +2980,7 @@ func newUserMutation(c config, op Op, opts ...userOption) *UserMutation {
 }
 
 // withUserID sets the ID field of the mutation.
-func withUserID(id int) userOption {
+func withUserID(id uuid.UUID) userOption {
 	return func(m *UserMutation) {
 		var (
 			err   error
@@ -3131,9 +3030,15 @@ func (m UserMutation) Tx() (*Tx, error) {
 	return tx, nil
 }
 
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of User entities.
+func (m *UserMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *UserMutation) ID() (id int, exists bool) {
+func (m *UserMutation) ID() (id uuid.UUID, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -3144,12 +3049,12 @@ func (m *UserMutation) ID() (id int, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *UserMutation) IDs(ctx context.Context) ([]int, error) {
+func (m *UserMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []int{id}, nil
+			return []uuid.UUID{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):
@@ -3157,6 +3062,513 @@ func (m *UserMutation) IDs(ctx context.Context) ([]int, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetName sets the "name" field.
+func (m *UserMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *UserMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *UserMutation) ResetName() {
+	m.name = nil
+}
+
+// SetEmail sets the "email" field.
+func (m *UserMutation) SetEmail(s string) {
+	m.email = &s
+}
+
+// Email returns the value of the "email" field in the mutation.
+func (m *UserMutation) Email() (r string, exists bool) {
+	v := m.email
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEmail returns the old "email" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldEmail(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEmail is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEmail requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEmail: %w", err)
+	}
+	return oldValue.Email, nil
+}
+
+// ResetEmail resets all changes to the "email" field.
+func (m *UserMutation) ResetEmail() {
+	m.email = nil
+}
+
+// SetPassword sets the "password" field.
+func (m *UserMutation) SetPassword(s string) {
+	m.password = &s
+}
+
+// Password returns the value of the "password" field in the mutation.
+func (m *UserMutation) Password() (r string, exists bool) {
+	v := m.password
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPassword returns the old "password" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldPassword(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPassword is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPassword requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPassword: %w", err)
+	}
+	return oldValue.Password, nil
+}
+
+// ResetPassword resets all changes to the "password" field.
+func (m *UserMutation) ResetPassword() {
+	m.password = nil
+}
+
+// SetRole sets the "role" field.
+func (m *UserMutation) SetRole(u user.Role) {
+	m.role = &u
+}
+
+// Role returns the value of the "role" field in the mutation.
+func (m *UserMutation) Role() (r user.Role, exists bool) {
+	v := m.role
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRole returns the old "role" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldRole(ctx context.Context) (v user.Role, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRole is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRole requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRole: %w", err)
+	}
+	return oldValue.Role, nil
+}
+
+// ResetRole resets all changes to the "role" field.
+func (m *UserMutation) ResetRole() {
+	m.role = nil
+}
+
+// SetActive sets the "active" field.
+func (m *UserMutation) SetActive(b bool) {
+	m.active = &b
+}
+
+// Active returns the value of the "active" field in the mutation.
+func (m *UserMutation) Active() (r bool, exists bool) {
+	v := m.active
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActive returns the old "active" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldActive(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActive is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActive requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActive: %w", err)
+	}
+	return oldValue.Active, nil
+}
+
+// ResetActive resets all changes to the "active" field.
+func (m *UserMutation) ResetActive() {
+	m.active = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *UserMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *UserMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *UserMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *UserMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *UserMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *UserMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetLastLogin sets the "last_login" field.
+func (m *UserMutation) SetLastLogin(t time.Time) {
+	m.last_login = &t
+}
+
+// LastLogin returns the value of the "last_login" field in the mutation.
+func (m *UserMutation) LastLogin() (r time.Time, exists bool) {
+	v := m.last_login
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastLogin returns the old "last_login" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldLastLogin(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastLogin is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastLogin requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastLogin: %w", err)
+	}
+	return oldValue.LastLogin, nil
+}
+
+// ClearLastLogin clears the value of the "last_login" field.
+func (m *UserMutation) ClearLastLogin() {
+	m.last_login = nil
+	m.clearedFields[user.FieldLastLogin] = struct{}{}
+}
+
+// LastLoginCleared returns if the "last_login" field was cleared in this mutation.
+func (m *UserMutation) LastLoginCleared() bool {
+	_, ok := m.clearedFields[user.FieldLastLogin]
+	return ok
+}
+
+// ResetLastLogin resets all changes to the "last_login" field.
+func (m *UserMutation) ResetLastLogin() {
+	m.last_login = nil
+	delete(m.clearedFields, user.FieldLastLogin)
+}
+
+// SetProfileImage sets the "profile_image" field.
+func (m *UserMutation) SetProfileImage(s string) {
+	m.profile_image = &s
+}
+
+// ProfileImage returns the value of the "profile_image" field in the mutation.
+func (m *UserMutation) ProfileImage() (r string, exists bool) {
+	v := m.profile_image
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProfileImage returns the old "profile_image" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldProfileImage(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProfileImage is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProfileImage requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProfileImage: %w", err)
+	}
+	return oldValue.ProfileImage, nil
+}
+
+// ClearProfileImage clears the value of the "profile_image" field.
+func (m *UserMutation) ClearProfileImage() {
+	m.profile_image = nil
+	m.clearedFields[user.FieldProfileImage] = struct{}{}
+}
+
+// ProfileImageCleared returns if the "profile_image" field was cleared in this mutation.
+func (m *UserMutation) ProfileImageCleared() bool {
+	_, ok := m.clearedFields[user.FieldProfileImage]
+	return ok
+}
+
+// ResetProfileImage resets all changes to the "profile_image" field.
+func (m *UserMutation) ResetProfileImage() {
+	m.profile_image = nil
+	delete(m.clearedFields, user.FieldProfileImage)
+}
+
+// SetGithubTokenHash sets the "github_token_hash" field.
+func (m *UserMutation) SetGithubTokenHash(s string) {
+	m.github_token_hash = &s
+}
+
+// GithubTokenHash returns the value of the "github_token_hash" field in the mutation.
+func (m *UserMutation) GithubTokenHash() (r string, exists bool) {
+	v := m.github_token_hash
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGithubTokenHash returns the old "github_token_hash" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldGithubTokenHash(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGithubTokenHash is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGithubTokenHash requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGithubTokenHash: %w", err)
+	}
+	return oldValue.GithubTokenHash, nil
+}
+
+// ClearGithubTokenHash clears the value of the "github_token_hash" field.
+func (m *UserMutation) ClearGithubTokenHash() {
+	m.github_token_hash = nil
+	m.clearedFields[user.FieldGithubTokenHash] = struct{}{}
+}
+
+// GithubTokenHashCleared returns if the "github_token_hash" field was cleared in this mutation.
+func (m *UserMutation) GithubTokenHashCleared() bool {
+	_, ok := m.clearedFields[user.FieldGithubTokenHash]
+	return ok
+}
+
+// ResetGithubTokenHash resets all changes to the "github_token_hash" field.
+func (m *UserMutation) ResetGithubTokenHash() {
+	m.github_token_hash = nil
+	delete(m.clearedFields, user.FieldGithubTokenHash)
+}
+
+// AddPermissionIDs adds the "permissions" edge to the UserGeneralSpecPermissions entity by ids.
+func (m *UserMutation) AddPermissionIDs(ids ...uuid.UUID) {
+	if m.permissions == nil {
+		m.permissions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.permissions[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPermissions clears the "permissions" edge to the UserGeneralSpecPermissions entity.
+func (m *UserMutation) ClearPermissions() {
+	m.clearedpermissions = true
+}
+
+// PermissionsCleared reports if the "permissions" edge to the UserGeneralSpecPermissions entity was cleared.
+func (m *UserMutation) PermissionsCleared() bool {
+	return m.clearedpermissions
+}
+
+// RemovePermissionIDs removes the "permissions" edge to the UserGeneralSpecPermissions entity by IDs.
+func (m *UserMutation) RemovePermissionIDs(ids ...uuid.UUID) {
+	if m.removedpermissions == nil {
+		m.removedpermissions = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.permissions, ids[i])
+		m.removedpermissions[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPermissions returns the removed IDs of the "permissions" edge to the UserGeneralSpecPermissions entity.
+func (m *UserMutation) RemovedPermissionsIDs() (ids []uuid.UUID) {
+	for id := range m.removedpermissions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PermissionsIDs returns the "permissions" edge IDs in the mutation.
+func (m *UserMutation) PermissionsIDs() (ids []uuid.UUID) {
+	for id := range m.permissions {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPermissions resets all changes to the "permissions" edge.
+func (m *UserMutation) ResetPermissions() {
+	m.permissions = nil
+	m.clearedpermissions = false
+	m.removedpermissions = nil
+}
+
+// AddProjectIDs adds the "projects" edge to the Project entity by ids.
+func (m *UserMutation) AddProjectIDs(ids ...uuid.UUID) {
+	if m.projects == nil {
+		m.projects = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.projects[ids[i]] = struct{}{}
+	}
+}
+
+// ClearProjects clears the "projects" edge to the Project entity.
+func (m *UserMutation) ClearProjects() {
+	m.clearedprojects = true
+}
+
+// ProjectsCleared reports if the "projects" edge to the Project entity was cleared.
+func (m *UserMutation) ProjectsCleared() bool {
+	return m.clearedprojects
+}
+
+// RemoveProjectIDs removes the "projects" edge to the Project entity by IDs.
+func (m *UserMutation) RemoveProjectIDs(ids ...uuid.UUID) {
+	if m.removedprojects == nil {
+		m.removedprojects = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.projects, ids[i])
+		m.removedprojects[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedProjects returns the removed IDs of the "projects" edge to the Project entity.
+func (m *UserMutation) RemovedProjectsIDs() (ids []uuid.UUID) {
+	for id := range m.removedprojects {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ProjectsIDs returns the "projects" edge IDs in the mutation.
+func (m *UserMutation) ProjectsIDs() (ids []uuid.UUID) {
+	for id := range m.projects {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetProjects resets all changes to the "projects" edge.
+func (m *UserMutation) ResetProjects() {
+	m.projects = nil
+	m.clearedprojects = false
+	m.removedprojects = nil
 }
 
 // Where appends a list predicates to the UserMutation builder.
@@ -3193,7 +3605,37 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 0)
+	fields := make([]string, 0, 10)
+	if m.name != nil {
+		fields = append(fields, user.FieldName)
+	}
+	if m.email != nil {
+		fields = append(fields, user.FieldEmail)
+	}
+	if m.password != nil {
+		fields = append(fields, user.FieldPassword)
+	}
+	if m.role != nil {
+		fields = append(fields, user.FieldRole)
+	}
+	if m.active != nil {
+		fields = append(fields, user.FieldActive)
+	}
+	if m.created_at != nil {
+		fields = append(fields, user.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, user.FieldUpdatedAt)
+	}
+	if m.last_login != nil {
+		fields = append(fields, user.FieldLastLogin)
+	}
+	if m.profile_image != nil {
+		fields = append(fields, user.FieldProfileImage)
+	}
+	if m.github_token_hash != nil {
+		fields = append(fields, user.FieldGithubTokenHash)
+	}
 	return fields
 }
 
@@ -3201,6 +3643,28 @@ func (m *UserMutation) Fields() []string {
 // return value indicates that this field was not set, or was not defined in the
 // schema.
 func (m *UserMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case user.FieldName:
+		return m.Name()
+	case user.FieldEmail:
+		return m.Email()
+	case user.FieldPassword:
+		return m.Password()
+	case user.FieldRole:
+		return m.Role()
+	case user.FieldActive:
+		return m.Active()
+	case user.FieldCreatedAt:
+		return m.CreatedAt()
+	case user.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case user.FieldLastLogin:
+		return m.LastLogin()
+	case user.FieldProfileImage:
+		return m.ProfileImage()
+	case user.FieldGithubTokenHash:
+		return m.GithubTokenHash()
+	}
 	return nil, false
 }
 
@@ -3208,6 +3672,28 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 // returned if the mutation operation is not UpdateOne, or the query to the
 // database failed.
 func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case user.FieldName:
+		return m.OldName(ctx)
+	case user.FieldEmail:
+		return m.OldEmail(ctx)
+	case user.FieldPassword:
+		return m.OldPassword(ctx)
+	case user.FieldRole:
+		return m.OldRole(ctx)
+	case user.FieldActive:
+		return m.OldActive(ctx)
+	case user.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case user.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case user.FieldLastLogin:
+		return m.OldLastLogin(ctx)
+	case user.FieldProfileImage:
+		return m.OldProfileImage(ctx)
+	case user.FieldGithubTokenHash:
+		return m.OldGithubTokenHash(ctx)
+	}
 	return nil, fmt.Errorf("unknown User field %s", name)
 }
 
@@ -3216,6 +3702,76 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 // type.
 func (m *UserMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case user.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case user.FieldEmail:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEmail(v)
+		return nil
+	case user.FieldPassword:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPassword(v)
+		return nil
+	case user.FieldRole:
+		v, ok := value.(user.Role)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRole(v)
+		return nil
+	case user.FieldActive:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActive(v)
+		return nil
+	case user.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case user.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case user.FieldLastLogin:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastLogin(v)
+		return nil
+	case user.FieldProfileImage:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProfileImage(v)
+		return nil
+	case user.FieldGithubTokenHash:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGithubTokenHash(v)
+		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)
 }
@@ -3237,13 +3793,25 @@ func (m *UserMutation) AddedField(name string) (ent.Value, bool) {
 // the field is not defined in the schema, or if the type mismatched the field
 // type.
 func (m *UserMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown User numeric field %s", name)
 }
 
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *UserMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(user.FieldLastLogin) {
+		fields = append(fields, user.FieldLastLogin)
+	}
+	if m.FieldCleared(user.FieldProfileImage) {
+		fields = append(fields, user.FieldProfileImage)
+	}
+	if m.FieldCleared(user.FieldGithubTokenHash) {
+		fields = append(fields, user.FieldGithubTokenHash)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -3256,59 +3824,622 @@ func (m *UserMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *UserMutation) ClearField(name string) error {
+	switch name {
+	case user.FieldLastLogin:
+		m.ClearLastLogin()
+		return nil
+	case user.FieldProfileImage:
+		m.ClearProfileImage()
+		return nil
+	case user.FieldGithubTokenHash:
+		m.ClearGithubTokenHash()
+		return nil
+	}
 	return fmt.Errorf("unknown User nullable field %s", name)
 }
 
 // ResetField resets all changes in the mutation for the field with the given name.
 // It returns an error if the field is not defined in the schema.
 func (m *UserMutation) ResetField(name string) error {
+	switch name {
+	case user.FieldName:
+		m.ResetName()
+		return nil
+	case user.FieldEmail:
+		m.ResetEmail()
+		return nil
+	case user.FieldPassword:
+		m.ResetPassword()
+		return nil
+	case user.FieldRole:
+		m.ResetRole()
+		return nil
+	case user.FieldActive:
+		m.ResetActive()
+		return nil
+	case user.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case user.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case user.FieldLastLogin:
+		m.ResetLastLogin()
+		return nil
+	case user.FieldProfileImage:
+		m.ResetProfileImage()
+		return nil
+	case user.FieldGithubTokenHash:
+		m.ResetGithubTokenHash()
+		return nil
+	}
 	return fmt.Errorf("unknown User field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 2)
+	if m.permissions != nil {
+		edges = append(edges, user.EdgePermissions)
+	}
+	if m.projects != nil {
+		edges = append(edges, user.EdgeProjects)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *UserMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case user.EdgePermissions:
+		ids := make([]ent.Value, 0, len(m.permissions))
+		for id := range m.permissions {
+			ids = append(ids, id)
+		}
+		return ids
+	case user.EdgeProjects:
+		ids := make([]ent.Value, 0, len(m.projects))
+		for id := range m.projects {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 2)
+	if m.removedpermissions != nil {
+		edges = append(edges, user.EdgePermissions)
+	}
+	if m.removedprojects != nil {
+		edges = append(edges, user.EdgeProjects)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *UserMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case user.EdgePermissions:
+		ids := make([]ent.Value, 0, len(m.removedpermissions))
+		for id := range m.removedpermissions {
+			ids = append(ids, id)
+		}
+		return ids
+	case user.EdgeProjects:
+		ids := make([]ent.Value, 0, len(m.removedprojects))
+		for id := range m.removedprojects {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 2)
+	if m.clearedpermissions {
+		edges = append(edges, user.EdgePermissions)
+	}
+	if m.clearedprojects {
+		edges = append(edges, user.EdgeProjects)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *UserMutation) EdgeCleared(name string) bool {
+	switch name {
+	case user.EdgePermissions:
+		return m.clearedpermissions
+	case user.EdgeProjects:
+		return m.clearedprojects
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *UserMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown User unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *UserMutation) ResetEdge(name string) error {
+	switch name {
+	case user.EdgePermissions:
+		m.ResetPermissions()
+		return nil
+	case user.EdgeProjects:
+		m.ResetProjects()
+		return nil
+	}
 	return fmt.Errorf("unknown User edge %s", name)
+}
+
+// UserGeneralSpecPermissionsMutation represents an operation that mutates the UserGeneralSpecPermissions nodes in the graph.
+type UserGeneralSpecPermissionsMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *uuid.UUID
+	permission          *usergeneralspecpermissions.Permission
+	clearedFields       map[string]struct{}
+	user                *uuid.UUID
+	cleareduser         bool
+	general_spec        *int
+	clearedgeneral_spec bool
+	done                bool
+	oldValue            func(context.Context) (*UserGeneralSpecPermissions, error)
+	predicates          []predicate.UserGeneralSpecPermissions
+}
+
+var _ ent.Mutation = (*UserGeneralSpecPermissionsMutation)(nil)
+
+// usergeneralspecpermissionsOption allows management of the mutation configuration using functional options.
+type usergeneralspecpermissionsOption func(*UserGeneralSpecPermissionsMutation)
+
+// newUserGeneralSpecPermissionsMutation creates new mutation for the UserGeneralSpecPermissions entity.
+func newUserGeneralSpecPermissionsMutation(c config, op Op, opts ...usergeneralspecpermissionsOption) *UserGeneralSpecPermissionsMutation {
+	m := &UserGeneralSpecPermissionsMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeUserGeneralSpecPermissions,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withUserGeneralSpecPermissionsID sets the ID field of the mutation.
+func withUserGeneralSpecPermissionsID(id uuid.UUID) usergeneralspecpermissionsOption {
+	return func(m *UserGeneralSpecPermissionsMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *UserGeneralSpecPermissions
+		)
+		m.oldValue = func(ctx context.Context) (*UserGeneralSpecPermissions, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().UserGeneralSpecPermissions.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withUserGeneralSpecPermissions sets the old UserGeneralSpecPermissions of the mutation.
+func withUserGeneralSpecPermissions(node *UserGeneralSpecPermissions) usergeneralspecpermissionsOption {
+	return func(m *UserGeneralSpecPermissionsMutation) {
+		m.oldValue = func(context.Context) (*UserGeneralSpecPermissions, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m UserGeneralSpecPermissionsMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m UserGeneralSpecPermissionsMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of UserGeneralSpecPermissions entities.
+func (m *UserGeneralSpecPermissionsMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *UserGeneralSpecPermissionsMutation) ID() (id uuid.UUID, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *UserGeneralSpecPermissionsMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uuid.UUID{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().UserGeneralSpecPermissions.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetPermission sets the "permission" field.
+func (m *UserGeneralSpecPermissionsMutation) SetPermission(u usergeneralspecpermissions.Permission) {
+	m.permission = &u
+}
+
+// Permission returns the value of the "permission" field in the mutation.
+func (m *UserGeneralSpecPermissionsMutation) Permission() (r usergeneralspecpermissions.Permission, exists bool) {
+	v := m.permission
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPermission returns the old "permission" field's value of the UserGeneralSpecPermissions entity.
+// If the UserGeneralSpecPermissions object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserGeneralSpecPermissionsMutation) OldPermission(ctx context.Context) (v usergeneralspecpermissions.Permission, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPermission is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPermission requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPermission: %w", err)
+	}
+	return oldValue.Permission, nil
+}
+
+// ResetPermission resets all changes to the "permission" field.
+func (m *UserGeneralSpecPermissionsMutation) ResetPermission() {
+	m.permission = nil
+}
+
+// SetUserID sets the "user" edge to the User entity by id.
+func (m *UserGeneralSpecPermissionsMutation) SetUserID(id uuid.UUID) {
+	m.user = &id
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (m *UserGeneralSpecPermissionsMutation) ClearUser() {
+	m.cleareduser = true
+}
+
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *UserGeneralSpecPermissionsMutation) UserCleared() bool {
+	return m.cleareduser
+}
+
+// UserID returns the "user" edge ID in the mutation.
+func (m *UserGeneralSpecPermissionsMutation) UserID() (id uuid.UUID, exists bool) {
+	if m.user != nil {
+		return *m.user, true
+	}
+	return
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UserID instead. It exists only for internal usage by the builders.
+func (m *UserGeneralSpecPermissionsMutation) UserIDs() (ids []uuid.UUID) {
+	if id := m.user; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *UserGeneralSpecPermissionsMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
+}
+
+// SetGeneralSpecID sets the "general_spec" edge to the GeneralSpec entity by id.
+func (m *UserGeneralSpecPermissionsMutation) SetGeneralSpecID(id int) {
+	m.general_spec = &id
+}
+
+// ClearGeneralSpec clears the "general_spec" edge to the GeneralSpec entity.
+func (m *UserGeneralSpecPermissionsMutation) ClearGeneralSpec() {
+	m.clearedgeneral_spec = true
+}
+
+// GeneralSpecCleared reports if the "general_spec" edge to the GeneralSpec entity was cleared.
+func (m *UserGeneralSpecPermissionsMutation) GeneralSpecCleared() bool {
+	return m.clearedgeneral_spec
+}
+
+// GeneralSpecID returns the "general_spec" edge ID in the mutation.
+func (m *UserGeneralSpecPermissionsMutation) GeneralSpecID() (id int, exists bool) {
+	if m.general_spec != nil {
+		return *m.general_spec, true
+	}
+	return
+}
+
+// GeneralSpecIDs returns the "general_spec" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// GeneralSpecID instead. It exists only for internal usage by the builders.
+func (m *UserGeneralSpecPermissionsMutation) GeneralSpecIDs() (ids []int) {
+	if id := m.general_spec; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetGeneralSpec resets all changes to the "general_spec" edge.
+func (m *UserGeneralSpecPermissionsMutation) ResetGeneralSpec() {
+	m.general_spec = nil
+	m.clearedgeneral_spec = false
+}
+
+// Where appends a list predicates to the UserGeneralSpecPermissionsMutation builder.
+func (m *UserGeneralSpecPermissionsMutation) Where(ps ...predicate.UserGeneralSpecPermissions) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the UserGeneralSpecPermissionsMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *UserGeneralSpecPermissionsMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.UserGeneralSpecPermissions, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *UserGeneralSpecPermissionsMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *UserGeneralSpecPermissionsMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (UserGeneralSpecPermissions).
+func (m *UserGeneralSpecPermissionsMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *UserGeneralSpecPermissionsMutation) Fields() []string {
+	fields := make([]string, 0, 1)
+	if m.permission != nil {
+		fields = append(fields, usergeneralspecpermissions.FieldPermission)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *UserGeneralSpecPermissionsMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case usergeneralspecpermissions.FieldPermission:
+		return m.Permission()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *UserGeneralSpecPermissionsMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case usergeneralspecpermissions.FieldPermission:
+		return m.OldPermission(ctx)
+	}
+	return nil, fmt.Errorf("unknown UserGeneralSpecPermissions field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *UserGeneralSpecPermissionsMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case usergeneralspecpermissions.FieldPermission:
+		v, ok := value.(usergeneralspecpermissions.Permission)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPermission(v)
+		return nil
+	}
+	return fmt.Errorf("unknown UserGeneralSpecPermissions field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *UserGeneralSpecPermissionsMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *UserGeneralSpecPermissionsMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *UserGeneralSpecPermissionsMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown UserGeneralSpecPermissions numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *UserGeneralSpecPermissionsMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *UserGeneralSpecPermissionsMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *UserGeneralSpecPermissionsMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown UserGeneralSpecPermissions nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *UserGeneralSpecPermissionsMutation) ResetField(name string) error {
+	switch name {
+	case usergeneralspecpermissions.FieldPermission:
+		m.ResetPermission()
+		return nil
+	}
+	return fmt.Errorf("unknown UserGeneralSpecPermissions field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *UserGeneralSpecPermissionsMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.user != nil {
+		edges = append(edges, usergeneralspecpermissions.EdgeUser)
+	}
+	if m.general_spec != nil {
+		edges = append(edges, usergeneralspecpermissions.EdgeGeneralSpec)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *UserGeneralSpecPermissionsMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case usergeneralspecpermissions.EdgeUser:
+		if id := m.user; id != nil {
+			return []ent.Value{*id}
+		}
+	case usergeneralspecpermissions.EdgeGeneralSpec:
+		if id := m.general_spec; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *UserGeneralSpecPermissionsMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *UserGeneralSpecPermissionsMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *UserGeneralSpecPermissionsMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.cleareduser {
+		edges = append(edges, usergeneralspecpermissions.EdgeUser)
+	}
+	if m.clearedgeneral_spec {
+		edges = append(edges, usergeneralspecpermissions.EdgeGeneralSpec)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *UserGeneralSpecPermissionsMutation) EdgeCleared(name string) bool {
+	switch name {
+	case usergeneralspecpermissions.EdgeUser:
+		return m.cleareduser
+	case usergeneralspecpermissions.EdgeGeneralSpec:
+		return m.clearedgeneral_spec
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *UserGeneralSpecPermissionsMutation) ClearEdge(name string) error {
+	switch name {
+	case usergeneralspecpermissions.EdgeUser:
+		m.ClearUser()
+		return nil
+	case usergeneralspecpermissions.EdgeGeneralSpec:
+		m.ClearGeneralSpec()
+		return nil
+	}
+	return fmt.Errorf("unknown UserGeneralSpecPermissions unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *UserGeneralSpecPermissionsMutation) ResetEdge(name string) error {
+	switch name {
+	case usergeneralspecpermissions.EdgeUser:
+		m.ResetUser()
+		return nil
+	case usergeneralspecpermissions.EdgeGeneralSpec:
+		m.ResetGeneralSpec()
+		return nil
+	}
+	return fmt.Errorf("unknown UserGeneralSpecPermissions edge %s", name)
 }

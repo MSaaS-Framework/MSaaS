@@ -9,6 +9,7 @@ import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/predicate"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/usergeneralspecpermissions"
 	"context"
 	"database/sql/driver"
 	"fmt"
@@ -18,19 +19,22 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // GeneralSpecQuery is the builder for querying GeneralSpec entities.
 type GeneralSpecQuery struct {
 	config
-	ctx          *QueryContext
-	order        []generalspec.OrderOption
-	inters       []Interceptor
-	predicates   []predicate.GeneralSpec
-	withService  *ServiceQuery
-	withDatabase *DatabaseQuery
-	withApispec  *APISpecQuery
-	withProject  *ProjectQuery
+	ctx             *QueryContext
+	order           []generalspec.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.GeneralSpec
+	withProject     *ProjectQuery
+	withService     *ServiceQuery
+	withDatabase    *DatabaseQuery
+	withApispec     *APISpecQuery
+	withPermissions *UserGeneralSpecPermissionsQuery
+	withFKs         bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -65,6 +69,28 @@ func (gsq *GeneralSpecQuery) Unique(unique bool) *GeneralSpecQuery {
 func (gsq *GeneralSpecQuery) Order(o ...generalspec.OrderOption) *GeneralSpecQuery {
 	gsq.order = append(gsq.order, o...)
 	return gsq
+}
+
+// QueryProject chains the current query on the "project" edge.
+func (gsq *GeneralSpecQuery) QueryProject() *ProjectQuery {
+	query := (&ProjectClient{config: gsq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := gsq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := gsq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(generalspec.Table, generalspec.FieldID, selector),
+			sqlgraph.To(project.Table, project.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, generalspec.ProjectTable, generalspec.ProjectColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(gsq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QueryService chains the current query on the "service" edge.
@@ -133,9 +159,9 @@ func (gsq *GeneralSpecQuery) QueryApispec() *APISpecQuery {
 	return query
 }
 
-// QueryProject chains the current query on the "project" edge.
-func (gsq *GeneralSpecQuery) QueryProject() *ProjectQuery {
-	query := (&ProjectClient{config: gsq.config}).Query()
+// QueryPermissions chains the current query on the "permissions" edge.
+func (gsq *GeneralSpecQuery) QueryPermissions() *UserGeneralSpecPermissionsQuery {
+	query := (&UserGeneralSpecPermissionsClient{config: gsq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := gsq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -146,8 +172,8 @@ func (gsq *GeneralSpecQuery) QueryProject() *ProjectQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(generalspec.Table, generalspec.FieldID, selector),
-			sqlgraph.To(project.Table, project.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, generalspec.ProjectTable, generalspec.ProjectColumn),
+			sqlgraph.To(usergeneralspecpermissions.Table, usergeneralspecpermissions.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, generalspec.PermissionsTable, generalspec.PermissionsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(gsq.driver.Dialect(), step)
 		return fromU, nil
@@ -342,19 +368,31 @@ func (gsq *GeneralSpecQuery) Clone() *GeneralSpecQuery {
 		return nil
 	}
 	return &GeneralSpecQuery{
-		config:       gsq.config,
-		ctx:          gsq.ctx.Clone(),
-		order:        append([]generalspec.OrderOption{}, gsq.order...),
-		inters:       append([]Interceptor{}, gsq.inters...),
-		predicates:   append([]predicate.GeneralSpec{}, gsq.predicates...),
-		withService:  gsq.withService.Clone(),
-		withDatabase: gsq.withDatabase.Clone(),
-		withApispec:  gsq.withApispec.Clone(),
-		withProject:  gsq.withProject.Clone(),
+		config:          gsq.config,
+		ctx:             gsq.ctx.Clone(),
+		order:           append([]generalspec.OrderOption{}, gsq.order...),
+		inters:          append([]Interceptor{}, gsq.inters...),
+		predicates:      append([]predicate.GeneralSpec{}, gsq.predicates...),
+		withProject:     gsq.withProject.Clone(),
+		withService:     gsq.withService.Clone(),
+		withDatabase:    gsq.withDatabase.Clone(),
+		withApispec:     gsq.withApispec.Clone(),
+		withPermissions: gsq.withPermissions.Clone(),
 		// clone intermediate query.
 		sql:  gsq.sql.Clone(),
 		path: gsq.path,
 	}
+}
+
+// WithProject tells the query-builder to eager-load the nodes that are connected to
+// the "project" edge. The optional arguments are used to configure the query builder of the edge.
+func (gsq *GeneralSpecQuery) WithProject(opts ...func(*ProjectQuery)) *GeneralSpecQuery {
+	query := (&ProjectClient{config: gsq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	gsq.withProject = query
+	return gsq
 }
 
 // WithService tells the query-builder to eager-load the nodes that are connected to
@@ -390,14 +428,14 @@ func (gsq *GeneralSpecQuery) WithApispec(opts ...func(*APISpecQuery)) *GeneralSp
 	return gsq
 }
 
-// WithProject tells the query-builder to eager-load the nodes that are connected to
-// the "project" edge. The optional arguments are used to configure the query builder of the edge.
-func (gsq *GeneralSpecQuery) WithProject(opts ...func(*ProjectQuery)) *GeneralSpecQuery {
-	query := (&ProjectClient{config: gsq.config}).Query()
+// WithPermissions tells the query-builder to eager-load the nodes that are connected to
+// the "permissions" edge. The optional arguments are used to configure the query builder of the edge.
+func (gsq *GeneralSpecQuery) WithPermissions(opts ...func(*UserGeneralSpecPermissionsQuery)) *GeneralSpecQuery {
+	query := (&UserGeneralSpecPermissionsClient{config: gsq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	gsq.withProject = query
+	gsq.withPermissions = query
 	return gsq
 }
 
@@ -478,14 +516,22 @@ func (gsq *GeneralSpecQuery) prepareQuery(ctx context.Context) error {
 func (gsq *GeneralSpecQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*GeneralSpec, error) {
 	var (
 		nodes       = []*GeneralSpec{}
+		withFKs     = gsq.withFKs
 		_spec       = gsq.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [5]bool{
+			gsq.withProject != nil,
 			gsq.withService != nil,
 			gsq.withDatabase != nil,
 			gsq.withApispec != nil,
-			gsq.withProject != nil,
+			gsq.withPermissions != nil,
 		}
 	)
+	if gsq.withProject != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, generalspec.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*GeneralSpec).scanValues(nil, columns)
 	}
@@ -503,6 +549,12 @@ func (gsq *GeneralSpecQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
+	}
+	if query := gsq.withProject; query != nil {
+		if err := gsq.loadProject(ctx, query, nodes, nil,
+			func(n *GeneralSpec, e *Project) { n.Edges.Project = e }); err != nil {
+			return nil, err
+		}
 	}
 	if query := gsq.withService; query != nil {
 		if err := gsq.loadService(ctx, query, nodes, nil,
@@ -522,15 +574,50 @@ func (gsq *GeneralSpecQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 			return nil, err
 		}
 	}
-	if query := gsq.withProject; query != nil {
-		if err := gsq.loadProject(ctx, query, nodes, nil,
-			func(n *GeneralSpec, e *Project) { n.Edges.Project = e }); err != nil {
+	if query := gsq.withPermissions; query != nil {
+		if err := gsq.loadPermissions(ctx, query, nodes,
+			func(n *GeneralSpec) { n.Edges.Permissions = []*UserGeneralSpecPermissions{} },
+			func(n *GeneralSpec, e *UserGeneralSpecPermissions) {
+				n.Edges.Permissions = append(n.Edges.Permissions, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
+func (gsq *GeneralSpecQuery) loadProject(ctx context.Context, query *ProjectQuery, nodes []*GeneralSpec, init func(*GeneralSpec), assign func(*GeneralSpec, *Project)) error {
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*GeneralSpec)
+	for i := range nodes {
+		if nodes[i].project_general_specs == nil {
+			continue
+		}
+		fk := *nodes[i].project_general_specs
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(project.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "project_general_specs" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (gsq *GeneralSpecQuery) loadService(ctx context.Context, query *ServiceQuery, nodes []*GeneralSpec, init func(*GeneralSpec), assign func(*GeneralSpec, *Service)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[int]*GeneralSpec)
@@ -615,29 +702,32 @@ func (gsq *GeneralSpecQuery) loadApispec(ctx context.Context, query *APISpecQuer
 	}
 	return nil
 }
-func (gsq *GeneralSpecQuery) loadProject(ctx context.Context, query *ProjectQuery, nodes []*GeneralSpec, init func(*GeneralSpec), assign func(*GeneralSpec, *Project)) error {
+func (gsq *GeneralSpecQuery) loadPermissions(ctx context.Context, query *UserGeneralSpecPermissionsQuery, nodes []*GeneralSpec, init func(*GeneralSpec), assign func(*GeneralSpec, *UserGeneralSpecPermissions)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[int]*GeneralSpec)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
 	}
 	query.withFKs = true
-	query.Where(predicate.Project(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(generalspec.ProjectColumn), fks...))
+	query.Where(predicate.UserGeneralSpecPermissions(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(generalspec.PermissionsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.general_spec_project
+		fk := n.general_spec_permissions
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "general_spec_project" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "general_spec_permissions" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "general_spec_project" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "general_spec_permissions" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

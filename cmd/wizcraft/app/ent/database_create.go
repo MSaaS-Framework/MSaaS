@@ -5,7 +5,6 @@ package ent
 import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/database"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"context"
 	"errors"
@@ -74,36 +73,9 @@ func (dc *DatabaseCreate) SetService(s *Service) *DatabaseCreate {
 	return dc.SetServiceID(s.ID)
 }
 
-// SetProjectID sets the "project" edge to the Project entity by ID.
-func (dc *DatabaseCreate) SetProjectID(id uuid.UUID) *DatabaseCreate {
-	dc.mutation.SetProjectID(id)
-	return dc
-}
-
-// SetNillableProjectID sets the "project" edge to the Project entity by ID if the given value is not nil.
-func (dc *DatabaseCreate) SetNillableProjectID(id *uuid.UUID) *DatabaseCreate {
-	if id != nil {
-		dc = dc.SetProjectID(*id)
-	}
-	return dc
-}
-
-// SetProject sets the "project" edge to the Project entity.
-func (dc *DatabaseCreate) SetProject(p *Project) *DatabaseCreate {
-	return dc.SetProjectID(p.ID)
-}
-
 // SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
 func (dc *DatabaseCreate) SetGeneralspecID(id int) *DatabaseCreate {
 	dc.mutation.SetGeneralspecID(id)
-	return dc
-}
-
-// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
-func (dc *DatabaseCreate) SetNillableGeneralspecID(id *int) *DatabaseCreate {
-	if id != nil {
-		dc = dc.SetGeneralspecID(*id)
-	}
 	return dc
 }
 
@@ -174,6 +146,9 @@ func (dc *DatabaseCreate) check() error {
 			return &ValidationError{Name: "db_type", err: fmt.Errorf(`ent: validator failed for field "Database.db_type": %w`, err)}
 		}
 	}
+	if len(dc.mutation.GeneralspecIDs()) == 0 {
+		return &ValidationError{Name: "generalspec", err: errors.New(`ent: missing required edge "Database.generalspec"`)}
+	}
 	return nil
 }
 
@@ -236,23 +211,6 @@ func (dc *DatabaseCreate) createSpec() (*Database, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.service_databases = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := dc.mutation.ProjectIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   database.ProjectTable,
-			Columns: []string{database.ProjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.project_databases = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := dc.mutation.GeneralspecIDs(); len(nodes) > 0 {

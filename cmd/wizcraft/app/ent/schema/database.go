@@ -23,9 +23,14 @@ func (Database) Fields() []ent.Field {
 
 func (Database) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("service", Service.Type).Ref("databases").Unique(),
-		edge.From("project", Project.Type).Ref("databases").Unique(),
+		// Service와의 관계 (N:1)
+		edge.From("service", Service.Type).
+			Ref("databases").
+			Unique(),
+		// GeneralSpec과의 관계 (1:1)
 		edge.From("generalspec", GeneralSpec.Type).
-			Ref("database").Unique(), // 역참조 설정
+			Ref("database").
+			Unique().
+			Required(),
 	}
 }

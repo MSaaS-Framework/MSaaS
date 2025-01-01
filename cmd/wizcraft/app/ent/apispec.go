@@ -5,7 +5,6 @@ package ent
 import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/apispec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"encoding/json"
 	"fmt"
@@ -27,7 +26,6 @@ type APISpec struct {
 	// The values are being populated by the APISpecQuery when eager-loading is set.
 	Edges                APISpecEdges `json:"edges"`
 	general_spec_apispec *int
-	project_apispecs     *uuid.UUID
 	service_apispec      *uuid.UUID
 	selectValues         sql.SelectValues
 }
@@ -36,13 +34,11 @@ type APISpec struct {
 type APISpecEdges struct {
 	// Service holds the value of the service edge.
 	Service *Service `json:"service,omitempty"`
-	// Project holds the value of the project edge.
-	Project *Project `json:"project,omitempty"`
 	// Generalspec holds the value of the generalspec edge.
 	Generalspec *GeneralSpec `json:"generalspec,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [2]bool
 }
 
 // ServiceOrErr returns the Service value or an error if the edge
@@ -56,23 +52,12 @@ func (e APISpecEdges) ServiceOrErr() (*Service, error) {
 	return nil, &NotLoadedError{edge: "service"}
 }
 
-// ProjectOrErr returns the Project value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e APISpecEdges) ProjectOrErr() (*Project, error) {
-	if e.Project != nil {
-		return e.Project, nil
-	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: project.Label}
-	}
-	return nil, &NotLoadedError{edge: "project"}
-}
-
 // GeneralspecOrErr returns the Generalspec value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e APISpecEdges) GeneralspecOrErr() (*GeneralSpec, error) {
 	if e.Generalspec != nil {
 		return e.Generalspec, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: generalspec.Label}
 	}
 	return nil, &NotLoadedError{edge: "generalspec"}
@@ -89,9 +74,7 @@ func (*APISpec) scanValues(columns []string) ([]any, error) {
 			values[i] = new(uuid.UUID)
 		case apispec.ForeignKeys[0]: // general_spec_apispec
 			values[i] = new(sql.NullInt64)
-		case apispec.ForeignKeys[1]: // project_apispecs
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case apispec.ForeignKeys[2]: // service_apispec
+		case apispec.ForeignKeys[1]: // service_apispec
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
@@ -131,13 +114,6 @@ func (as *APISpec) assignValues(columns []string, values []any) error {
 			}
 		case apispec.ForeignKeys[1]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field project_apispecs", values[i])
-			} else if value.Valid {
-				as.project_apispecs = new(uuid.UUID)
-				*as.project_apispecs = *value.S.(*uuid.UUID)
-			}
-		case apispec.ForeignKeys[2]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field service_apispec", values[i])
 			} else if value.Valid {
 				as.service_apispec = new(uuid.UUID)
@@ -159,11 +135,6 @@ func (as *APISpec) Value(name string) (ent.Value, error) {
 // QueryService queries the "service" edge of the APISpec entity.
 func (as *APISpec) QueryService() *ServiceQuery {
 	return NewAPISpecClient(as.config).QueryService(as)
-}
-
-// QueryProject queries the "project" edge of the APISpec entity.
-func (as *APISpec) QueryProject() *ProjectQuery {
-	return NewAPISpecClient(as.config).QueryProject(as)
 }
 
 // QueryGeneralspec queries the "generalspec" edge of the APISpec entity.

@@ -3,7 +3,6 @@
 package ent
 
 import (
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"fmt"
 	"strings"
@@ -20,62 +19,37 @@ type Project struct {
 	ID uuid.UUID `json:"id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ProjectQuery when eager-loading is set.
-	Edges                ProjectEdges `json:"edges"`
-	general_spec_project *int
-	selectValues         sql.SelectValues
+	Edges        ProjectEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // ProjectEdges holds the relations/edges for other nodes in the graph.
 type ProjectEdges struct {
-	// Services holds the value of the services edge.
-	Services []*Service `json:"services,omitempty"`
-	// Databases holds the value of the databases edge.
-	Databases []*Database `json:"databases,omitempty"`
-	// Apispecs holds the value of the apispecs edge.
-	Apispecs []*APISpec `json:"apispecs,omitempty"`
-	// Generalspec holds the value of the generalspec edge.
-	Generalspec *GeneralSpec `json:"generalspec,omitempty"`
+	// GeneralSpecs holds the value of the general_specs edge.
+	GeneralSpecs []*GeneralSpec `json:"general_specs,omitempty"`
+	// Users holds the value of the users edge.
+	Users []*User `json:"users,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [2]bool
 }
 
-// ServicesOrErr returns the Services value or an error if the edge
+// GeneralSpecsOrErr returns the GeneralSpecs value or an error if the edge
 // was not loaded in eager-loading.
-func (e ProjectEdges) ServicesOrErr() ([]*Service, error) {
+func (e ProjectEdges) GeneralSpecsOrErr() ([]*GeneralSpec, error) {
 	if e.loadedTypes[0] {
-		return e.Services, nil
+		return e.GeneralSpecs, nil
 	}
-	return nil, &NotLoadedError{edge: "services"}
+	return nil, &NotLoadedError{edge: "general_specs"}
 }
 
-// DatabasesOrErr returns the Databases value or an error if the edge
+// UsersOrErr returns the Users value or an error if the edge
 // was not loaded in eager-loading.
-func (e ProjectEdges) DatabasesOrErr() ([]*Database, error) {
+func (e ProjectEdges) UsersOrErr() ([]*User, error) {
 	if e.loadedTypes[1] {
-		return e.Databases, nil
+		return e.Users, nil
 	}
-	return nil, &NotLoadedError{edge: "databases"}
-}
-
-// ApispecsOrErr returns the Apispecs value or an error if the edge
-// was not loaded in eager-loading.
-func (e ProjectEdges) ApispecsOrErr() ([]*APISpec, error) {
-	if e.loadedTypes[2] {
-		return e.Apispecs, nil
-	}
-	return nil, &NotLoadedError{edge: "apispecs"}
-}
-
-// GeneralspecOrErr returns the Generalspec value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ProjectEdges) GeneralspecOrErr() (*GeneralSpec, error) {
-	if e.Generalspec != nil {
-		return e.Generalspec, nil
-	} else if e.loadedTypes[3] {
-		return nil, &NotFoundError{label: generalspec.Label}
-	}
-	return nil, &NotLoadedError{edge: "generalspec"}
+	return nil, &NotLoadedError{edge: "users"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -85,8 +59,6 @@ func (*Project) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case project.FieldID:
 			values[i] = new(uuid.UUID)
-		case project.ForeignKeys[0]: // general_spec_project
-			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -108,13 +80,6 @@ func (pr *Project) assignValues(columns []string, values []any) error {
 			} else if value != nil {
 				pr.ID = *value
 			}
-		case project.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field general_spec_project", value)
-			} else if value.Valid {
-				pr.general_spec_project = new(int)
-				*pr.general_spec_project = int(value.Int64)
-			}
 		default:
 			pr.selectValues.Set(columns[i], values[i])
 		}
@@ -128,24 +93,14 @@ func (pr *Project) Value(name string) (ent.Value, error) {
 	return pr.selectValues.Get(name)
 }
 
-// QueryServices queries the "services" edge of the Project entity.
-func (pr *Project) QueryServices() *ServiceQuery {
-	return NewProjectClient(pr.config).QueryServices(pr)
+// QueryGeneralSpecs queries the "general_specs" edge of the Project entity.
+func (pr *Project) QueryGeneralSpecs() *GeneralSpecQuery {
+	return NewProjectClient(pr.config).QueryGeneralSpecs(pr)
 }
 
-// QueryDatabases queries the "databases" edge of the Project entity.
-func (pr *Project) QueryDatabases() *DatabaseQuery {
-	return NewProjectClient(pr.config).QueryDatabases(pr)
-}
-
-// QueryApispecs queries the "apispecs" edge of the Project entity.
-func (pr *Project) QueryApispecs() *APISpecQuery {
-	return NewProjectClient(pr.config).QueryApispecs(pr)
-}
-
-// QueryGeneralspec queries the "generalspec" edge of the Project entity.
-func (pr *Project) QueryGeneralspec() *GeneralSpecQuery {
-	return NewProjectClient(pr.config).QueryGeneralspec(pr)
+// QueryUsers queries the "users" edge of the Project entity.
+func (pr *Project) QueryUsers() *UserQuery {
+	return NewProjectClient(pr.config).QueryUsers(pr)
 }
 
 // Update returns a builder for updating this Project.

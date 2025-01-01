@@ -3,12 +3,10 @@
 package ent
 
 import (
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/apispec"
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/database"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/predicate"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/user"
 	"context"
 	"errors"
 	"fmt"
@@ -32,68 +30,34 @@ func (pu *ProjectUpdate) Where(ps ...predicate.Project) *ProjectUpdate {
 	return pu
 }
 
-// AddServiceIDs adds the "services" edge to the Service entity by IDs.
-func (pu *ProjectUpdate) AddServiceIDs(ids ...uuid.UUID) *ProjectUpdate {
-	pu.mutation.AddServiceIDs(ids...)
+// AddGeneralSpecIDs adds the "general_specs" edge to the GeneralSpec entity by IDs.
+func (pu *ProjectUpdate) AddGeneralSpecIDs(ids ...int) *ProjectUpdate {
+	pu.mutation.AddGeneralSpecIDs(ids...)
 	return pu
 }
 
-// AddServices adds the "services" edges to the Service entity.
-func (pu *ProjectUpdate) AddServices(s ...*Service) *ProjectUpdate {
-	ids := make([]uuid.UUID, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+// AddGeneralSpecs adds the "general_specs" edges to the GeneralSpec entity.
+func (pu *ProjectUpdate) AddGeneralSpecs(g ...*GeneralSpec) *ProjectUpdate {
+	ids := make([]int, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
 	}
-	return pu.AddServiceIDs(ids...)
+	return pu.AddGeneralSpecIDs(ids...)
 }
 
-// AddDatabaseIDs adds the "databases" edge to the Database entity by IDs.
-func (pu *ProjectUpdate) AddDatabaseIDs(ids ...uuid.UUID) *ProjectUpdate {
-	pu.mutation.AddDatabaseIDs(ids...)
+// AddUserIDs adds the "users" edge to the User entity by IDs.
+func (pu *ProjectUpdate) AddUserIDs(ids ...uuid.UUID) *ProjectUpdate {
+	pu.mutation.AddUserIDs(ids...)
 	return pu
 }
 
-// AddDatabases adds the "databases" edges to the Database entity.
-func (pu *ProjectUpdate) AddDatabases(d ...*Database) *ProjectUpdate {
-	ids := make([]uuid.UUID, len(d))
-	for i := range d {
-		ids[i] = d[i].ID
+// AddUsers adds the "users" edges to the User entity.
+func (pu *ProjectUpdate) AddUsers(u ...*User) *ProjectUpdate {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
 	}
-	return pu.AddDatabaseIDs(ids...)
-}
-
-// AddApispecIDs adds the "apispecs" edge to the APISpec entity by IDs.
-func (pu *ProjectUpdate) AddApispecIDs(ids ...uuid.UUID) *ProjectUpdate {
-	pu.mutation.AddApispecIDs(ids...)
-	return pu
-}
-
-// AddApispecs adds the "apispecs" edges to the APISpec entity.
-func (pu *ProjectUpdate) AddApispecs(a ...*APISpec) *ProjectUpdate {
-	ids := make([]uuid.UUID, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
-	}
-	return pu.AddApispecIDs(ids...)
-}
-
-// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
-func (pu *ProjectUpdate) SetGeneralspecID(id int) *ProjectUpdate {
-	pu.mutation.SetGeneralspecID(id)
-	return pu
-}
-
-// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
-func (pu *ProjectUpdate) SetNillableGeneralspecID(id *int) *ProjectUpdate {
-	if id != nil {
-		pu = pu.SetGeneralspecID(*id)
-	}
-	return pu
-}
-
-// SetGeneralspec sets the "generalspec" edge to the GeneralSpec entity.
-func (pu *ProjectUpdate) SetGeneralspec(g *GeneralSpec) *ProjectUpdate {
-	return pu.SetGeneralspecID(g.ID)
+	return pu.AddUserIDs(ids...)
 }
 
 // Mutation returns the ProjectMutation object of the builder.
@@ -101,73 +65,46 @@ func (pu *ProjectUpdate) Mutation() *ProjectMutation {
 	return pu.mutation
 }
 
-// ClearServices clears all "services" edges to the Service entity.
-func (pu *ProjectUpdate) ClearServices() *ProjectUpdate {
-	pu.mutation.ClearServices()
+// ClearGeneralSpecs clears all "general_specs" edges to the GeneralSpec entity.
+func (pu *ProjectUpdate) ClearGeneralSpecs() *ProjectUpdate {
+	pu.mutation.ClearGeneralSpecs()
 	return pu
 }
 
-// RemoveServiceIDs removes the "services" edge to Service entities by IDs.
-func (pu *ProjectUpdate) RemoveServiceIDs(ids ...uuid.UUID) *ProjectUpdate {
-	pu.mutation.RemoveServiceIDs(ids...)
+// RemoveGeneralSpecIDs removes the "general_specs" edge to GeneralSpec entities by IDs.
+func (pu *ProjectUpdate) RemoveGeneralSpecIDs(ids ...int) *ProjectUpdate {
+	pu.mutation.RemoveGeneralSpecIDs(ids...)
 	return pu
 }
 
-// RemoveServices removes "services" edges to Service entities.
-func (pu *ProjectUpdate) RemoveServices(s ...*Service) *ProjectUpdate {
-	ids := make([]uuid.UUID, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+// RemoveGeneralSpecs removes "general_specs" edges to GeneralSpec entities.
+func (pu *ProjectUpdate) RemoveGeneralSpecs(g ...*GeneralSpec) *ProjectUpdate {
+	ids := make([]int, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
 	}
-	return pu.RemoveServiceIDs(ids...)
+	return pu.RemoveGeneralSpecIDs(ids...)
 }
 
-// ClearDatabases clears all "databases" edges to the Database entity.
-func (pu *ProjectUpdate) ClearDatabases() *ProjectUpdate {
-	pu.mutation.ClearDatabases()
+// ClearUsers clears all "users" edges to the User entity.
+func (pu *ProjectUpdate) ClearUsers() *ProjectUpdate {
+	pu.mutation.ClearUsers()
 	return pu
 }
 
-// RemoveDatabaseIDs removes the "databases" edge to Database entities by IDs.
-func (pu *ProjectUpdate) RemoveDatabaseIDs(ids ...uuid.UUID) *ProjectUpdate {
-	pu.mutation.RemoveDatabaseIDs(ids...)
+// RemoveUserIDs removes the "users" edge to User entities by IDs.
+func (pu *ProjectUpdate) RemoveUserIDs(ids ...uuid.UUID) *ProjectUpdate {
+	pu.mutation.RemoveUserIDs(ids...)
 	return pu
 }
 
-// RemoveDatabases removes "databases" edges to Database entities.
-func (pu *ProjectUpdate) RemoveDatabases(d ...*Database) *ProjectUpdate {
-	ids := make([]uuid.UUID, len(d))
-	for i := range d {
-		ids[i] = d[i].ID
+// RemoveUsers removes "users" edges to User entities.
+func (pu *ProjectUpdate) RemoveUsers(u ...*User) *ProjectUpdate {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
 	}
-	return pu.RemoveDatabaseIDs(ids...)
-}
-
-// ClearApispecs clears all "apispecs" edges to the APISpec entity.
-func (pu *ProjectUpdate) ClearApispecs() *ProjectUpdate {
-	pu.mutation.ClearApispecs()
-	return pu
-}
-
-// RemoveApispecIDs removes the "apispecs" edge to APISpec entities by IDs.
-func (pu *ProjectUpdate) RemoveApispecIDs(ids ...uuid.UUID) *ProjectUpdate {
-	pu.mutation.RemoveApispecIDs(ids...)
-	return pu
-}
-
-// RemoveApispecs removes "apispecs" edges to APISpec entities.
-func (pu *ProjectUpdate) RemoveApispecs(a ...*APISpec) *ProjectUpdate {
-	ids := make([]uuid.UUID, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
-	}
-	return pu.RemoveApispecIDs(ids...)
-}
-
-// ClearGeneralspec clears the "generalspec" edge to the GeneralSpec entity.
-func (pu *ProjectUpdate) ClearGeneralspec() *ProjectUpdate {
-	pu.mutation.ClearGeneralspec()
-	return pu
+	return pu.RemoveUserIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -206,147 +143,12 @@ func (pu *ProjectUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
-	if pu.mutation.ServicesCleared() {
+	if pu.mutation.GeneralSpecsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   project.ServicesTable,
-			Columns: []string{project.ServicesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(service.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := pu.mutation.RemovedServicesIDs(); len(nodes) > 0 && !pu.mutation.ServicesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.ServicesTable,
-			Columns: []string{project.ServicesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(service.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := pu.mutation.ServicesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.ServicesTable,
-			Columns: []string{project.ServicesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(service.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if pu.mutation.DatabasesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.DatabasesTable,
-			Columns: []string{project.DatabasesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(database.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := pu.mutation.RemovedDatabasesIDs(); len(nodes) > 0 && !pu.mutation.DatabasesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.DatabasesTable,
-			Columns: []string{project.DatabasesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(database.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := pu.mutation.DatabasesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.DatabasesTable,
-			Columns: []string{project.DatabasesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(database.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if pu.mutation.ApispecsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.ApispecsTable,
-			Columns: []string{project.ApispecsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apispec.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := pu.mutation.RemovedApispecsIDs(); len(nodes) > 0 && !pu.mutation.ApispecsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.ApispecsTable,
-			Columns: []string{project.ApispecsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apispec.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := pu.mutation.ApispecsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.ApispecsTable,
-			Columns: []string{project.ApispecsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apispec.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if pu.mutation.GeneralspecCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   project.GeneralspecTable,
-			Columns: []string{project.GeneralspecColumn},
+			Table:   project.GeneralSpecsTable,
+			Columns: []string{project.GeneralSpecsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
@@ -354,15 +156,76 @@ func (pu *ProjectUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := pu.mutation.GeneralspecIDs(); len(nodes) > 0 {
+	if nodes := pu.mutation.RemovedGeneralSpecsIDs(); len(nodes) > 0 && !pu.mutation.GeneralSpecsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   project.GeneralspecTable,
-			Columns: []string{project.GeneralspecColumn},
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   project.GeneralSpecsTable,
+			Columns: []string{project.GeneralSpecsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.GeneralSpecsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   project.GeneralSpecsTable,
+			Columns: []string{project.GeneralSpecsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if pu.mutation.UsersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   project.UsersTable,
+			Columns: project.UsersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.RemovedUsersIDs(); len(nodes) > 0 && !pu.mutation.UsersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   project.UsersTable,
+			Columns: project.UsersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.UsersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   project.UsersTable,
+			Columns: project.UsersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -390,68 +253,34 @@ type ProjectUpdateOne struct {
 	mutation *ProjectMutation
 }
 
-// AddServiceIDs adds the "services" edge to the Service entity by IDs.
-func (puo *ProjectUpdateOne) AddServiceIDs(ids ...uuid.UUID) *ProjectUpdateOne {
-	puo.mutation.AddServiceIDs(ids...)
+// AddGeneralSpecIDs adds the "general_specs" edge to the GeneralSpec entity by IDs.
+func (puo *ProjectUpdateOne) AddGeneralSpecIDs(ids ...int) *ProjectUpdateOne {
+	puo.mutation.AddGeneralSpecIDs(ids...)
 	return puo
 }
 
-// AddServices adds the "services" edges to the Service entity.
-func (puo *ProjectUpdateOne) AddServices(s ...*Service) *ProjectUpdateOne {
-	ids := make([]uuid.UUID, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+// AddGeneralSpecs adds the "general_specs" edges to the GeneralSpec entity.
+func (puo *ProjectUpdateOne) AddGeneralSpecs(g ...*GeneralSpec) *ProjectUpdateOne {
+	ids := make([]int, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
 	}
-	return puo.AddServiceIDs(ids...)
+	return puo.AddGeneralSpecIDs(ids...)
 }
 
-// AddDatabaseIDs adds the "databases" edge to the Database entity by IDs.
-func (puo *ProjectUpdateOne) AddDatabaseIDs(ids ...uuid.UUID) *ProjectUpdateOne {
-	puo.mutation.AddDatabaseIDs(ids...)
+// AddUserIDs adds the "users" edge to the User entity by IDs.
+func (puo *ProjectUpdateOne) AddUserIDs(ids ...uuid.UUID) *ProjectUpdateOne {
+	puo.mutation.AddUserIDs(ids...)
 	return puo
 }
 
-// AddDatabases adds the "databases" edges to the Database entity.
-func (puo *ProjectUpdateOne) AddDatabases(d ...*Database) *ProjectUpdateOne {
-	ids := make([]uuid.UUID, len(d))
-	for i := range d {
-		ids[i] = d[i].ID
+// AddUsers adds the "users" edges to the User entity.
+func (puo *ProjectUpdateOne) AddUsers(u ...*User) *ProjectUpdateOne {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
 	}
-	return puo.AddDatabaseIDs(ids...)
-}
-
-// AddApispecIDs adds the "apispecs" edge to the APISpec entity by IDs.
-func (puo *ProjectUpdateOne) AddApispecIDs(ids ...uuid.UUID) *ProjectUpdateOne {
-	puo.mutation.AddApispecIDs(ids...)
-	return puo
-}
-
-// AddApispecs adds the "apispecs" edges to the APISpec entity.
-func (puo *ProjectUpdateOne) AddApispecs(a ...*APISpec) *ProjectUpdateOne {
-	ids := make([]uuid.UUID, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
-	}
-	return puo.AddApispecIDs(ids...)
-}
-
-// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
-func (puo *ProjectUpdateOne) SetGeneralspecID(id int) *ProjectUpdateOne {
-	puo.mutation.SetGeneralspecID(id)
-	return puo
-}
-
-// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
-func (puo *ProjectUpdateOne) SetNillableGeneralspecID(id *int) *ProjectUpdateOne {
-	if id != nil {
-		puo = puo.SetGeneralspecID(*id)
-	}
-	return puo
-}
-
-// SetGeneralspec sets the "generalspec" edge to the GeneralSpec entity.
-func (puo *ProjectUpdateOne) SetGeneralspec(g *GeneralSpec) *ProjectUpdateOne {
-	return puo.SetGeneralspecID(g.ID)
+	return puo.AddUserIDs(ids...)
 }
 
 // Mutation returns the ProjectMutation object of the builder.
@@ -459,73 +288,46 @@ func (puo *ProjectUpdateOne) Mutation() *ProjectMutation {
 	return puo.mutation
 }
 
-// ClearServices clears all "services" edges to the Service entity.
-func (puo *ProjectUpdateOne) ClearServices() *ProjectUpdateOne {
-	puo.mutation.ClearServices()
+// ClearGeneralSpecs clears all "general_specs" edges to the GeneralSpec entity.
+func (puo *ProjectUpdateOne) ClearGeneralSpecs() *ProjectUpdateOne {
+	puo.mutation.ClearGeneralSpecs()
 	return puo
 }
 
-// RemoveServiceIDs removes the "services" edge to Service entities by IDs.
-func (puo *ProjectUpdateOne) RemoveServiceIDs(ids ...uuid.UUID) *ProjectUpdateOne {
-	puo.mutation.RemoveServiceIDs(ids...)
+// RemoveGeneralSpecIDs removes the "general_specs" edge to GeneralSpec entities by IDs.
+func (puo *ProjectUpdateOne) RemoveGeneralSpecIDs(ids ...int) *ProjectUpdateOne {
+	puo.mutation.RemoveGeneralSpecIDs(ids...)
 	return puo
 }
 
-// RemoveServices removes "services" edges to Service entities.
-func (puo *ProjectUpdateOne) RemoveServices(s ...*Service) *ProjectUpdateOne {
-	ids := make([]uuid.UUID, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+// RemoveGeneralSpecs removes "general_specs" edges to GeneralSpec entities.
+func (puo *ProjectUpdateOne) RemoveGeneralSpecs(g ...*GeneralSpec) *ProjectUpdateOne {
+	ids := make([]int, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
 	}
-	return puo.RemoveServiceIDs(ids...)
+	return puo.RemoveGeneralSpecIDs(ids...)
 }
 
-// ClearDatabases clears all "databases" edges to the Database entity.
-func (puo *ProjectUpdateOne) ClearDatabases() *ProjectUpdateOne {
-	puo.mutation.ClearDatabases()
+// ClearUsers clears all "users" edges to the User entity.
+func (puo *ProjectUpdateOne) ClearUsers() *ProjectUpdateOne {
+	puo.mutation.ClearUsers()
 	return puo
 }
 
-// RemoveDatabaseIDs removes the "databases" edge to Database entities by IDs.
-func (puo *ProjectUpdateOne) RemoveDatabaseIDs(ids ...uuid.UUID) *ProjectUpdateOne {
-	puo.mutation.RemoveDatabaseIDs(ids...)
+// RemoveUserIDs removes the "users" edge to User entities by IDs.
+func (puo *ProjectUpdateOne) RemoveUserIDs(ids ...uuid.UUID) *ProjectUpdateOne {
+	puo.mutation.RemoveUserIDs(ids...)
 	return puo
 }
 
-// RemoveDatabases removes "databases" edges to Database entities.
-func (puo *ProjectUpdateOne) RemoveDatabases(d ...*Database) *ProjectUpdateOne {
-	ids := make([]uuid.UUID, len(d))
-	for i := range d {
-		ids[i] = d[i].ID
+// RemoveUsers removes "users" edges to User entities.
+func (puo *ProjectUpdateOne) RemoveUsers(u ...*User) *ProjectUpdateOne {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
 	}
-	return puo.RemoveDatabaseIDs(ids...)
-}
-
-// ClearApispecs clears all "apispecs" edges to the APISpec entity.
-func (puo *ProjectUpdateOne) ClearApispecs() *ProjectUpdateOne {
-	puo.mutation.ClearApispecs()
-	return puo
-}
-
-// RemoveApispecIDs removes the "apispecs" edge to APISpec entities by IDs.
-func (puo *ProjectUpdateOne) RemoveApispecIDs(ids ...uuid.UUID) *ProjectUpdateOne {
-	puo.mutation.RemoveApispecIDs(ids...)
-	return puo
-}
-
-// RemoveApispecs removes "apispecs" edges to APISpec entities.
-func (puo *ProjectUpdateOne) RemoveApispecs(a ...*APISpec) *ProjectUpdateOne {
-	ids := make([]uuid.UUID, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
-	}
-	return puo.RemoveApispecIDs(ids...)
-}
-
-// ClearGeneralspec clears the "generalspec" edge to the GeneralSpec entity.
-func (puo *ProjectUpdateOne) ClearGeneralspec() *ProjectUpdateOne {
-	puo.mutation.ClearGeneralspec()
-	return puo
+	return puo.RemoveUserIDs(ids...)
 }
 
 // Where appends a list predicates to the ProjectUpdate builder.
@@ -594,147 +396,12 @@ func (puo *ProjectUpdateOne) sqlSave(ctx context.Context) (_node *Project, err e
 			}
 		}
 	}
-	if puo.mutation.ServicesCleared() {
+	if puo.mutation.GeneralSpecsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   project.ServicesTable,
-			Columns: []string{project.ServicesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(service.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := puo.mutation.RemovedServicesIDs(); len(nodes) > 0 && !puo.mutation.ServicesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.ServicesTable,
-			Columns: []string{project.ServicesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(service.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := puo.mutation.ServicesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.ServicesTable,
-			Columns: []string{project.ServicesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(service.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if puo.mutation.DatabasesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.DatabasesTable,
-			Columns: []string{project.DatabasesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(database.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := puo.mutation.RemovedDatabasesIDs(); len(nodes) > 0 && !puo.mutation.DatabasesCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.DatabasesTable,
-			Columns: []string{project.DatabasesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(database.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := puo.mutation.DatabasesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.DatabasesTable,
-			Columns: []string{project.DatabasesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(database.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if puo.mutation.ApispecsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.ApispecsTable,
-			Columns: []string{project.ApispecsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apispec.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := puo.mutation.RemovedApispecsIDs(); len(nodes) > 0 && !puo.mutation.ApispecsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.ApispecsTable,
-			Columns: []string{project.ApispecsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apispec.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := puo.mutation.ApispecsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.ApispecsTable,
-			Columns: []string{project.ApispecsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apispec.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if puo.mutation.GeneralspecCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   project.GeneralspecTable,
-			Columns: []string{project.GeneralspecColumn},
+			Table:   project.GeneralSpecsTable,
+			Columns: []string{project.GeneralSpecsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
@@ -742,15 +409,76 @@ func (puo *ProjectUpdateOne) sqlSave(ctx context.Context) (_node *Project, err e
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := puo.mutation.GeneralspecIDs(); len(nodes) > 0 {
+	if nodes := puo.mutation.RemovedGeneralSpecsIDs(); len(nodes) > 0 && !puo.mutation.GeneralSpecsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   project.GeneralspecTable,
-			Columns: []string{project.GeneralspecColumn},
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   project.GeneralSpecsTable,
+			Columns: []string{project.GeneralSpecsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.GeneralSpecsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   project.GeneralSpecsTable,
+			Columns: []string{project.GeneralSpecsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if puo.mutation.UsersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   project.UsersTable,
+			Columns: project.UsersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.RemovedUsersIDs(); len(nodes) > 0 && !puo.mutation.UsersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   project.UsersTable,
+			Columns: project.UsersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.UsersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   project.UsersTable,
+			Columns: project.UsersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

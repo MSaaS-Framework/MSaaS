@@ -5,7 +5,6 @@ package ent
 import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/database"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"fmt"
 	"strings"
@@ -30,7 +29,6 @@ type Database struct {
 	// The values are being populated by the DatabaseQuery when eager-loading is set.
 	Edges                 DatabaseEdges `json:"edges"`
 	general_spec_database *int
-	project_databases     *uuid.UUID
 	service_databases     *uuid.UUID
 	selectValues          sql.SelectValues
 }
@@ -39,13 +37,11 @@ type Database struct {
 type DatabaseEdges struct {
 	// Service holds the value of the service edge.
 	Service *Service `json:"service,omitempty"`
-	// Project holds the value of the project edge.
-	Project *Project `json:"project,omitempty"`
 	// Generalspec holds the value of the generalspec edge.
 	Generalspec *GeneralSpec `json:"generalspec,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [2]bool
 }
 
 // ServiceOrErr returns the Service value or an error if the edge
@@ -59,23 +55,12 @@ func (e DatabaseEdges) ServiceOrErr() (*Service, error) {
 	return nil, &NotLoadedError{edge: "service"}
 }
 
-// ProjectOrErr returns the Project value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e DatabaseEdges) ProjectOrErr() (*Project, error) {
-	if e.Project != nil {
-		return e.Project, nil
-	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: project.Label}
-	}
-	return nil, &NotLoadedError{edge: "project"}
-}
-
 // GeneralspecOrErr returns the Generalspec value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e DatabaseEdges) GeneralspecOrErr() (*GeneralSpec, error) {
 	if e.Generalspec != nil {
 		return e.Generalspec, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: generalspec.Label}
 	}
 	return nil, &NotLoadedError{edge: "generalspec"}
@@ -92,9 +77,7 @@ func (*Database) scanValues(columns []string) ([]any, error) {
 			values[i] = new(uuid.UUID)
 		case database.ForeignKeys[0]: // general_spec_database
 			values[i] = new(sql.NullInt64)
-		case database.ForeignKeys[1]: // project_databases
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case database.ForeignKeys[2]: // service_databases
+		case database.ForeignKeys[1]: // service_databases
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
@@ -144,13 +127,6 @@ func (d *Database) assignValues(columns []string, values []any) error {
 			}
 		case database.ForeignKeys[1]:
 			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field project_databases", values[i])
-			} else if value.Valid {
-				d.project_databases = new(uuid.UUID)
-				*d.project_databases = *value.S.(*uuid.UUID)
-			}
-		case database.ForeignKeys[2]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field service_databases", values[i])
 			} else if value.Valid {
 				d.service_databases = new(uuid.UUID)
@@ -172,11 +148,6 @@ func (d *Database) Value(name string) (ent.Value, error) {
 // QueryService queries the "service" edge of the Database entity.
 func (d *Database) QueryService() *ServiceQuery {
 	return NewDatabaseClient(d.config).QueryService(d)
-}
-
-// QueryProject queries the "project" edge of the Database entity.
-func (d *Database) QueryProject() *ProjectQuery {
-	return NewDatabaseClient(d.config).QueryProject(d)
 }
 
 // QueryGeneralspec queries the "generalspec" edge of the Database entity.

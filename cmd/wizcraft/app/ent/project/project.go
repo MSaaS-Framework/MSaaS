@@ -13,44 +13,24 @@ const (
 	Label = "project"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
-	// EdgeServices holds the string denoting the services edge name in mutations.
-	EdgeServices = "services"
-	// EdgeDatabases holds the string denoting the databases edge name in mutations.
-	EdgeDatabases = "databases"
-	// EdgeApispecs holds the string denoting the apispecs edge name in mutations.
-	EdgeApispecs = "apispecs"
-	// EdgeGeneralspec holds the string denoting the generalspec edge name in mutations.
-	EdgeGeneralspec = "generalspec"
+	// EdgeGeneralSpecs holds the string denoting the general_specs edge name in mutations.
+	EdgeGeneralSpecs = "general_specs"
+	// EdgeUsers holds the string denoting the users edge name in mutations.
+	EdgeUsers = "users"
 	// Table holds the table name of the project in the database.
 	Table = "projects"
-	// ServicesTable is the table that holds the services relation/edge.
-	ServicesTable = "services"
-	// ServicesInverseTable is the table name for the Service entity.
-	// It exists in this package in order to avoid circular dependency with the "service" package.
-	ServicesInverseTable = "services"
-	// ServicesColumn is the table column denoting the services relation/edge.
-	ServicesColumn = "project_services"
-	// DatabasesTable is the table that holds the databases relation/edge.
-	DatabasesTable = "databases"
-	// DatabasesInverseTable is the table name for the Database entity.
-	// It exists in this package in order to avoid circular dependency with the "database" package.
-	DatabasesInverseTable = "databases"
-	// DatabasesColumn is the table column denoting the databases relation/edge.
-	DatabasesColumn = "project_databases"
-	// ApispecsTable is the table that holds the apispecs relation/edge.
-	ApispecsTable = "api_specs"
-	// ApispecsInverseTable is the table name for the APISpec entity.
-	// It exists in this package in order to avoid circular dependency with the "apispec" package.
-	ApispecsInverseTable = "api_specs"
-	// ApispecsColumn is the table column denoting the apispecs relation/edge.
-	ApispecsColumn = "project_apispecs"
-	// GeneralspecTable is the table that holds the generalspec relation/edge.
-	GeneralspecTable = "projects"
-	// GeneralspecInverseTable is the table name for the GeneralSpec entity.
+	// GeneralSpecsTable is the table that holds the general_specs relation/edge.
+	GeneralSpecsTable = "general_specs"
+	// GeneralSpecsInverseTable is the table name for the GeneralSpec entity.
 	// It exists in this package in order to avoid circular dependency with the "generalspec" package.
-	GeneralspecInverseTable = "general_specs"
-	// GeneralspecColumn is the table column denoting the generalspec relation/edge.
-	GeneralspecColumn = "general_spec_project"
+	GeneralSpecsInverseTable = "general_specs"
+	// GeneralSpecsColumn is the table column denoting the general_specs relation/edge.
+	GeneralSpecsColumn = "project_general_specs"
+	// UsersTable is the table that holds the users relation/edge. The primary key declared below.
+	UsersTable = "user_projects"
+	// UsersInverseTable is the table name for the User entity.
+	// It exists in this package in order to avoid circular dependency with the "user" package.
+	UsersInverseTable = "users"
 )
 
 // Columns holds all SQL columns for project fields.
@@ -58,21 +38,16 @@ var Columns = []string{
 	FieldID,
 }
 
-// ForeignKeys holds the SQL foreign-keys that are owned by the "projects"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"general_spec_project",
-}
+var (
+	// UsersPrimaryKey and UsersColumn2 are the table columns denoting the
+	// primary key for the users relation (M2M).
+	UsersPrimaryKey = []string{"user_id", "project_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -92,79 +67,44 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
-// ByServicesCount orders the results by services count.
-func ByServicesCount(opts ...sql.OrderTermOption) OrderOption {
+// ByGeneralSpecsCount orders the results by general_specs count.
+func ByGeneralSpecsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newServicesStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newGeneralSpecsStep(), opts...)
 	}
 }
 
-// ByServices orders the results by services terms.
-func ByServices(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByGeneralSpecs orders the results by general_specs terms.
+func ByGeneralSpecs(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newServicesStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newGeneralSpecsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
-// ByDatabasesCount orders the results by databases count.
-func ByDatabasesCount(opts ...sql.OrderTermOption) OrderOption {
+// ByUsersCount orders the results by users count.
+func ByUsersCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newDatabasesStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newUsersStep(), opts...)
 	}
 }
 
-// ByDatabases orders the results by databases terms.
-func ByDatabases(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByUsers orders the results by users terms.
+func ByUsers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newDatabasesStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newUsersStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-
-// ByApispecsCount orders the results by apispecs count.
-func ByApispecsCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newApispecsStep(), opts...)
-	}
-}
-
-// ByApispecs orders the results by apispecs terms.
-func ByApispecs(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newApispecsStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
-// ByGeneralspecField orders the results by generalspec field.
-func ByGeneralspecField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newGeneralspecStep(), sql.OrderByField(field, opts...))
-	}
-}
-func newServicesStep() *sqlgraph.Step {
+func newGeneralSpecsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ServicesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, ServicesTable, ServicesColumn),
+		sqlgraph.To(GeneralSpecsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, GeneralSpecsTable, GeneralSpecsColumn),
 	)
 }
-func newDatabasesStep() *sqlgraph.Step {
+func newUsersStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(DatabasesInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, DatabasesTable, DatabasesColumn),
-	)
-}
-func newApispecsStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ApispecsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, ApispecsTable, ApispecsColumn),
-	)
-}
-func newGeneralspecStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(GeneralspecInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, GeneralspecTable, GeneralspecColumn),
+		sqlgraph.To(UsersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, true, UsersTable, UsersPrimaryKey...),
 	)
 }

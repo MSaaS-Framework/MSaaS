@@ -55,21 +55,21 @@ func IDLTE(id uuid.UUID) predicate.Project {
 	return predicate.Project(sql.FieldLTE(FieldID, id))
 }
 
-// HasServices applies the HasEdge predicate on the "services" edge.
-func HasServices() predicate.Project {
+// HasGeneralSpecs applies the HasEdge predicate on the "general_specs" edge.
+func HasGeneralSpecs() predicate.Project {
 	return predicate.Project(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, ServicesTable, ServicesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, GeneralSpecsTable, GeneralSpecsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasServicesWith applies the HasEdge predicate on the "services" edge with a given conditions (other predicates).
-func HasServicesWith(preds ...predicate.Service) predicate.Project {
+// HasGeneralSpecsWith applies the HasEdge predicate on the "general_specs" edge with a given conditions (other predicates).
+func HasGeneralSpecsWith(preds ...predicate.GeneralSpec) predicate.Project {
 	return predicate.Project(func(s *sql.Selector) {
-		step := newServicesStep()
+		step := newGeneralSpecsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -78,67 +78,21 @@ func HasServicesWith(preds ...predicate.Service) predicate.Project {
 	})
 }
 
-// HasDatabases applies the HasEdge predicate on the "databases" edge.
-func HasDatabases() predicate.Project {
+// HasUsers applies the HasEdge predicate on the "users" edge.
+func HasUsers() predicate.Project {
 	return predicate.Project(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, DatabasesTable, DatabasesColumn),
+			sqlgraph.Edge(sqlgraph.M2M, true, UsersTable, UsersPrimaryKey...),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasDatabasesWith applies the HasEdge predicate on the "databases" edge with a given conditions (other predicates).
-func HasDatabasesWith(preds ...predicate.Database) predicate.Project {
+// HasUsersWith applies the HasEdge predicate on the "users" edge with a given conditions (other predicates).
+func HasUsersWith(preds ...predicate.User) predicate.Project {
 	return predicate.Project(func(s *sql.Selector) {
-		step := newDatabasesStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasApispecs applies the HasEdge predicate on the "apispecs" edge.
-func HasApispecs() predicate.Project {
-	return predicate.Project(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, ApispecsTable, ApispecsColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasApispecsWith applies the HasEdge predicate on the "apispecs" edge with a given conditions (other predicates).
-func HasApispecsWith(preds ...predicate.APISpec) predicate.Project {
-	return predicate.Project(func(s *sql.Selector) {
-		step := newApispecsStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasGeneralspec applies the HasEdge predicate on the "generalspec" edge.
-func HasGeneralspec() predicate.Project {
-	return predicate.Project(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, GeneralspecTable, GeneralspecColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasGeneralspecWith applies the HasEdge predicate on the "generalspec" edge with a given conditions (other predicates).
-func HasGeneralspecWith(preds ...predicate.GeneralSpec) predicate.Project {
-	return predicate.Project(func(s *sql.Selector) {
-		step := newGeneralspecStep()
+		step := newUsersStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

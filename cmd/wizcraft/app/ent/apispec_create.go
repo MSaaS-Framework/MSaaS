@@ -5,7 +5,6 @@ package ent
 import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/apispec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"context"
 	"errors"
@@ -49,49 +48,14 @@ func (asc *APISpecCreate) SetServiceID(id uuid.UUID) *APISpecCreate {
 	return asc
 }
 
-// SetNillableServiceID sets the "service" edge to the Service entity by ID if the given value is not nil.
-func (asc *APISpecCreate) SetNillableServiceID(id *uuid.UUID) *APISpecCreate {
-	if id != nil {
-		asc = asc.SetServiceID(*id)
-	}
-	return asc
-}
-
 // SetService sets the "service" edge to the Service entity.
 func (asc *APISpecCreate) SetService(s *Service) *APISpecCreate {
 	return asc.SetServiceID(s.ID)
 }
 
-// SetProjectID sets the "project" edge to the Project entity by ID.
-func (asc *APISpecCreate) SetProjectID(id uuid.UUID) *APISpecCreate {
-	asc.mutation.SetProjectID(id)
-	return asc
-}
-
-// SetNillableProjectID sets the "project" edge to the Project entity by ID if the given value is not nil.
-func (asc *APISpecCreate) SetNillableProjectID(id *uuid.UUID) *APISpecCreate {
-	if id != nil {
-		asc = asc.SetProjectID(*id)
-	}
-	return asc
-}
-
-// SetProject sets the "project" edge to the Project entity.
-func (asc *APISpecCreate) SetProject(p *Project) *APISpecCreate {
-	return asc.SetProjectID(p.ID)
-}
-
 // SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
 func (asc *APISpecCreate) SetGeneralspecID(id int) *APISpecCreate {
 	asc.mutation.SetGeneralspecID(id)
-	return asc
-}
-
-// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
-func (asc *APISpecCreate) SetNillableGeneralspecID(id *int) *APISpecCreate {
-	if id != nil {
-		asc = asc.SetGeneralspecID(*id)
-	}
 	return asc
 }
 
@@ -145,6 +109,12 @@ func (asc *APISpecCreate) defaults() {
 func (asc *APISpecCreate) check() error {
 	if _, ok := asc.mutation.OpenapiSpec(); !ok {
 		return &ValidationError{Name: "openapi_spec", err: errors.New(`ent: missing required field "APISpec.openapi_spec"`)}
+	}
+	if len(asc.mutation.ServiceIDs()) == 0 {
+		return &ValidationError{Name: "service", err: errors.New(`ent: missing required edge "APISpec.service"`)}
+	}
+	if len(asc.mutation.GeneralspecIDs()) == 0 {
+		return &ValidationError{Name: "generalspec", err: errors.New(`ent: missing required edge "APISpec.generalspec"`)}
 	}
 	return nil
 }
@@ -200,23 +170,6 @@ func (asc *APISpecCreate) createSpec() (*APISpec, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.service_apispec = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := asc.mutation.ProjectIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   apispec.ProjectTable,
-			Columns: []string{apispec.ProjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.project_apispecs = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := asc.mutation.GeneralspecIDs(); len(nodes) > 0 {

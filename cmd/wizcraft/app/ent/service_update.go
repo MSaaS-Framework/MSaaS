@@ -71,14 +71,6 @@ func (su *ServiceUpdate) SetGeneralspecID(id int) *ServiceUpdate {
 	return su
 }
 
-// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
-func (su *ServiceUpdate) SetNillableGeneralspecID(id *int) *ServiceUpdate {
-	if id != nil {
-		su = su.SetGeneralspecID(*id)
-	}
-	return su
-}
-
 // SetGeneralspec sets the "generalspec" edge to the GeneralSpec entity.
 func (su *ServiceUpdate) SetGeneralspec(g *GeneralSpec) *ServiceUpdate {
 	return su.SetGeneralspecID(g.ID)
@@ -149,7 +141,18 @@ func (su *ServiceUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (su *ServiceUpdate) check() error {
+	if su.mutation.GeneralspecCleared() && len(su.mutation.GeneralspecIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Service.generalspec"`)
+	}
+	return nil
+}
+
 func (su *ServiceUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := su.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(service.Table, service.Columns, sqlgraph.NewFieldSpec(service.FieldID, field.TypeUUID))
 	if ps := su.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -321,14 +324,6 @@ func (suo *ServiceUpdateOne) SetGeneralspecID(id int) *ServiceUpdateOne {
 	return suo
 }
 
-// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
-func (suo *ServiceUpdateOne) SetNillableGeneralspecID(id *int) *ServiceUpdateOne {
-	if id != nil {
-		suo = suo.SetGeneralspecID(*id)
-	}
-	return suo
-}
-
 // SetGeneralspec sets the "generalspec" edge to the GeneralSpec entity.
 func (suo *ServiceUpdateOne) SetGeneralspec(g *GeneralSpec) *ServiceUpdateOne {
 	return suo.SetGeneralspecID(g.ID)
@@ -412,7 +407,18 @@ func (suo *ServiceUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (suo *ServiceUpdateOne) check() error {
+	if suo.mutation.GeneralspecCleared() && len(suo.mutation.GeneralspecIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Service.generalspec"`)
+	}
+	return nil
+}
+
 func (suo *ServiceUpdateOne) sqlSave(ctx context.Context) (_node *Service, err error) {
+	if err := suo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(service.Table, service.Columns, sqlgraph.NewFieldSpec(service.FieldID, field.TypeUUID))
 	id, ok := suo.mutation.ID()
 	if !ok {

@@ -8,6 +8,7 @@ import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/usergeneralspecpermissions"
 	"context"
 	"errors"
 	"fmt"
@@ -35,6 +36,12 @@ func (gsc *GeneralSpecCreate) SetNillableUUID(u *uuid.UUID) *GeneralSpecCreate {
 	if u != nil {
 		gsc.SetUUID(*u)
 	}
+	return gsc
+}
+
+// SetProjectUUID sets the "project_uuid" field.
+func (gsc *GeneralSpecCreate) SetProjectUUID(u uuid.UUID) *GeneralSpecCreate {
+	gsc.mutation.SetProjectUUID(u)
 	return gsc
 }
 
@@ -68,6 +75,17 @@ func (gsc *GeneralSpecCreate) SetNillableStatus(s *string) *GeneralSpecCreate {
 func (gsc *GeneralSpecCreate) SetDescription(s string) *GeneralSpecCreate {
 	gsc.mutation.SetDescription(s)
 	return gsc
+}
+
+// SetProjectID sets the "project" edge to the Project entity by ID.
+func (gsc *GeneralSpecCreate) SetProjectID(id uuid.UUID) *GeneralSpecCreate {
+	gsc.mutation.SetProjectID(id)
+	return gsc
+}
+
+// SetProject sets the "project" edge to the Project entity.
+func (gsc *GeneralSpecCreate) SetProject(p *Project) *GeneralSpecCreate {
+	return gsc.SetProjectID(p.ID)
 }
 
 // SetServiceID sets the "service" edge to the Service entity by ID.
@@ -127,23 +145,19 @@ func (gsc *GeneralSpecCreate) SetApispec(a *APISpec) *GeneralSpecCreate {
 	return gsc.SetApispecID(a.ID)
 }
 
-// SetProjectID sets the "project" edge to the Project entity by ID.
-func (gsc *GeneralSpecCreate) SetProjectID(id uuid.UUID) *GeneralSpecCreate {
-	gsc.mutation.SetProjectID(id)
+// AddPermissionIDs adds the "permissions" edge to the UserGeneralSpecPermissions entity by IDs.
+func (gsc *GeneralSpecCreate) AddPermissionIDs(ids ...uuid.UUID) *GeneralSpecCreate {
+	gsc.mutation.AddPermissionIDs(ids...)
 	return gsc
 }
 
-// SetNillableProjectID sets the "project" edge to the Project entity by ID if the given value is not nil.
-func (gsc *GeneralSpecCreate) SetNillableProjectID(id *uuid.UUID) *GeneralSpecCreate {
-	if id != nil {
-		gsc = gsc.SetProjectID(*id)
+// AddPermissions adds the "permissions" edges to the UserGeneralSpecPermissions entity.
+func (gsc *GeneralSpecCreate) AddPermissions(u ...*UserGeneralSpecPermissions) *GeneralSpecCreate {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
 	}
-	return gsc
-}
-
-// SetProject sets the "project" edge to the Project entity.
-func (gsc *GeneralSpecCreate) SetProject(p *Project) *GeneralSpecCreate {
-	return gsc.SetProjectID(p.ID)
+	return gsc.AddPermissionIDs(ids...)
 }
 
 // Mutation returns the GeneralSpecMutation object of the builder.
@@ -196,6 +210,9 @@ func (gsc *GeneralSpecCreate) check() error {
 	if _, ok := gsc.mutation.UUID(); !ok {
 		return &ValidationError{Name: "uuid", err: errors.New(`ent: missing required field "GeneralSpec.uuid"`)}
 	}
+	if _, ok := gsc.mutation.ProjectUUID(); !ok {
+		return &ValidationError{Name: "project_uuid", err: errors.New(`ent: missing required field "GeneralSpec.project_uuid"`)}
+	}
 	if _, ok := gsc.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "GeneralSpec.name"`)}
 	}
@@ -207,6 +224,9 @@ func (gsc *GeneralSpecCreate) check() error {
 	}
 	if _, ok := gsc.mutation.Description(); !ok {
 		return &ValidationError{Name: "description", err: errors.New(`ent: missing required field "GeneralSpec.description"`)}
+	}
+	if len(gsc.mutation.ProjectIDs()) == 0 {
+		return &ValidationError{Name: "project", err: errors.New(`ent: missing required edge "GeneralSpec.project"`)}
 	}
 	return nil
 }
@@ -238,6 +258,10 @@ func (gsc *GeneralSpecCreate) createSpec() (*GeneralSpec, *sqlgraph.CreateSpec) 
 		_spec.SetField(generalspec.FieldUUID, field.TypeUUID, value)
 		_node.UUID = value
 	}
+	if value, ok := gsc.mutation.ProjectUUID(); ok {
+		_spec.SetField(generalspec.FieldProjectUUID, field.TypeUUID, value)
+		_node.ProjectUUID = value
+	}
 	if value, ok := gsc.mutation.Name(); ok {
 		_spec.SetField(generalspec.FieldName, field.TypeString, value)
 		_node.Name = value
@@ -253,6 +277,23 @@ func (gsc *GeneralSpecCreate) createSpec() (*GeneralSpec, *sqlgraph.CreateSpec) 
 	if value, ok := gsc.mutation.Description(); ok {
 		_spec.SetField(generalspec.FieldDescription, field.TypeString, value)
 		_node.Description = value
+	}
+	if nodes := gsc.mutation.ProjectIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   generalspec.ProjectTable,
+			Columns: []string{generalspec.ProjectColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.project_general_specs = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := gsc.mutation.ServiceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -302,15 +343,15 @@ func (gsc *GeneralSpecCreate) createSpec() (*GeneralSpec, *sqlgraph.CreateSpec) 
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := gsc.mutation.ProjectIDs(); len(nodes) > 0 {
+	if nodes := gsc.mutation.PermissionsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   generalspec.ProjectTable,
-			Columns: []string{generalspec.ProjectColumn},
+			Table:   generalspec.PermissionsTable,
+			Columns: []string{generalspec.PermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(usergeneralspecpermissions.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

@@ -8,6 +8,7 @@ import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"context"
+	"errors"
 	"fmt"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -76,14 +77,6 @@ func (sc *ServiceCreate) SetGeneralspecID(id int) *ServiceCreate {
 	return sc
 }
 
-// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
-func (sc *ServiceCreate) SetNillableGeneralspecID(id *int) *ServiceCreate {
-	if id != nil {
-		sc = sc.SetGeneralspecID(*id)
-	}
-	return sc
-}
-
 // SetGeneralspec sets the "generalspec" edge to the GeneralSpec entity.
 func (sc *ServiceCreate) SetGeneralspec(g *GeneralSpec) *ServiceCreate {
 	return sc.SetGeneralspecID(g.ID)
@@ -132,6 +125,9 @@ func (sc *ServiceCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (sc *ServiceCreate) check() error {
+	if len(sc.mutation.GeneralspecIDs()) == 0 {
+		return &ValidationError{Name: "generalspec", err: errors.New(`ent: missing required edge "Service.generalspec"`)}
+	}
 	return nil
 }
 

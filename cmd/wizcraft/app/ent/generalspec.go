@@ -23,6 +23,8 @@ type GeneralSpec struct {
 	ID int `json:"id,omitempty"`
 	// UUID holds the value of the "uuid" field.
 	UUID uuid.UUID `json:"uuid,omitempty"`
+	// ProjectUUID holds the value of the "project_uuid" field.
+	ProjectUUID uuid.UUID `json:"project_uuid,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Type holds the value of the "type" field.
@@ -33,23 +35,37 @@ type GeneralSpec struct {
 	Description string `json:"description,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the GeneralSpecQuery when eager-loading is set.
-	Edges        GeneralSpecEdges `json:"edges"`
-	selectValues sql.SelectValues
+	Edges                 GeneralSpecEdges `json:"edges"`
+	project_general_specs *uuid.UUID
+	selectValues          sql.SelectValues
 }
 
 // GeneralSpecEdges holds the relations/edges for other nodes in the graph.
 type GeneralSpecEdges struct {
+	// Project holds the value of the project edge.
+	Project *Project `json:"project,omitempty"`
 	// Service holds the value of the service edge.
 	Service *Service `json:"service,omitempty"`
 	// Database holds the value of the database edge.
 	Database *Database `json:"database,omitempty"`
 	// Apispec holds the value of the apispec edge.
 	Apispec *APISpec `json:"apispec,omitempty"`
-	// Project holds the value of the project edge.
-	Project *Project `json:"project,omitempty"`
+	// Permissions holds the value of the permissions edge.
+	Permissions []*UserGeneralSpecPermissions `json:"permissions,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
+}
+
+// ProjectOrErr returns the Project value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e GeneralSpecEdges) ProjectOrErr() (*Project, error) {
+	if e.Project != nil {
+		return e.Project, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: project.Label}
+	}
+	return nil, &NotLoadedError{edge: "project"}
 }
 
 // ServiceOrErr returns the Service value or an error if the edge
@@ -57,7 +73,7 @@ type GeneralSpecEdges struct {
 func (e GeneralSpecEdges) ServiceOrErr() (*Service, error) {
 	if e.Service != nil {
 		return e.Service, nil
-	} else if e.loadedTypes[0] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: service.Label}
 	}
 	return nil, &NotLoadedError{edge: "service"}
@@ -68,7 +84,7 @@ func (e GeneralSpecEdges) ServiceOrErr() (*Service, error) {
 func (e GeneralSpecEdges) DatabaseOrErr() (*Database, error) {
 	if e.Database != nil {
 		return e.Database, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[2] {
 		return nil, &NotFoundError{label: database.Label}
 	}
 	return nil, &NotLoadedError{edge: "database"}
@@ -79,21 +95,19 @@ func (e GeneralSpecEdges) DatabaseOrErr() (*Database, error) {
 func (e GeneralSpecEdges) ApispecOrErr() (*APISpec, error) {
 	if e.Apispec != nil {
 		return e.Apispec, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[3] {
 		return nil, &NotFoundError{label: apispec.Label}
 	}
 	return nil, &NotLoadedError{edge: "apispec"}
 }
 
-// ProjectOrErr returns the Project value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e GeneralSpecEdges) ProjectOrErr() (*Project, error) {
-	if e.Project != nil {
-		return e.Project, nil
-	} else if e.loadedTypes[3] {
-		return nil, &NotFoundError{label: project.Label}
+// PermissionsOrErr returns the Permissions value or an error if the edge
+// was not loaded in eager-loading.
+func (e GeneralSpecEdges) PermissionsOrErr() ([]*UserGeneralSpecPermissions, error) {
+	if e.loadedTypes[4] {
+		return e.Permissions, nil
 	}
-	return nil, &NotLoadedError{edge: "project"}
+	return nil, &NotLoadedError{edge: "permissions"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -105,8 +119,10 @@ func (*GeneralSpec) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case generalspec.FieldName, generalspec.FieldType, generalspec.FieldStatus, generalspec.FieldDescription:
 			values[i] = new(sql.NullString)
-		case generalspec.FieldUUID:
+		case generalspec.FieldUUID, generalspec.FieldProjectUUID:
 			values[i] = new(uuid.UUID)
+		case generalspec.ForeignKeys[0]: // project_general_specs
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -134,6 +150,12 @@ func (gs *GeneralSpec) assignValues(columns []string, values []any) error {
 			} else if value != nil {
 				gs.UUID = *value
 			}
+		case generalspec.FieldProjectUUID:
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field project_uuid", values[i])
+			} else if value != nil {
+				gs.ProjectUUID = *value
+			}
 		case generalspec.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
@@ -158,6 +180,13 @@ func (gs *GeneralSpec) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				gs.Description = value.String
 			}
+		case generalspec.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field project_general_specs", values[i])
+			} else if value.Valid {
+				gs.project_general_specs = new(uuid.UUID)
+				*gs.project_general_specs = *value.S.(*uuid.UUID)
+			}
 		default:
 			gs.selectValues.Set(columns[i], values[i])
 		}
@@ -169,6 +198,11 @@ func (gs *GeneralSpec) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (gs *GeneralSpec) Value(name string) (ent.Value, error) {
 	return gs.selectValues.Get(name)
+}
+
+// QueryProject queries the "project" edge of the GeneralSpec entity.
+func (gs *GeneralSpec) QueryProject() *ProjectQuery {
+	return NewGeneralSpecClient(gs.config).QueryProject(gs)
 }
 
 // QueryService queries the "service" edge of the GeneralSpec entity.
@@ -186,9 +220,9 @@ func (gs *GeneralSpec) QueryApispec() *APISpecQuery {
 	return NewGeneralSpecClient(gs.config).QueryApispec(gs)
 }
 
-// QueryProject queries the "project" edge of the GeneralSpec entity.
-func (gs *GeneralSpec) QueryProject() *ProjectQuery {
-	return NewGeneralSpecClient(gs.config).QueryProject(gs)
+// QueryPermissions queries the "permissions" edge of the GeneralSpec entity.
+func (gs *GeneralSpec) QueryPermissions() *UserGeneralSpecPermissionsQuery {
+	return NewGeneralSpecClient(gs.config).QueryPermissions(gs)
 }
 
 // Update returns a builder for updating this GeneralSpec.
@@ -216,6 +250,9 @@ func (gs *GeneralSpec) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", gs.ID))
 	builder.WriteString("uuid=")
 	builder.WriteString(fmt.Sprintf("%v", gs.UUID))
+	builder.WriteString(", ")
+	builder.WriteString("project_uuid=")
+	builder.WriteString(fmt.Sprintf("%v", gs.ProjectUUID))
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(gs.Name)

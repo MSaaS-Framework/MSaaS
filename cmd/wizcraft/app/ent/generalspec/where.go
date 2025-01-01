@@ -60,6 +60,11 @@ func UUID(v uuid.UUID) predicate.GeneralSpec {
 	return predicate.GeneralSpec(sql.FieldEQ(FieldUUID, v))
 }
 
+// ProjectUUID applies equality check predicate on the "project_uuid" field. It's identical to ProjectUUIDEQ.
+func ProjectUUID(v uuid.UUID) predicate.GeneralSpec {
+	return predicate.GeneralSpec(sql.FieldEQ(FieldProjectUUID, v))
+}
+
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
 func Name(v string) predicate.GeneralSpec {
 	return predicate.GeneralSpec(sql.FieldEQ(FieldName, v))
@@ -118,6 +123,46 @@ func UUIDLT(v uuid.UUID) predicate.GeneralSpec {
 // UUIDLTE applies the LTE predicate on the "uuid" field.
 func UUIDLTE(v uuid.UUID) predicate.GeneralSpec {
 	return predicate.GeneralSpec(sql.FieldLTE(FieldUUID, v))
+}
+
+// ProjectUUIDEQ applies the EQ predicate on the "project_uuid" field.
+func ProjectUUIDEQ(v uuid.UUID) predicate.GeneralSpec {
+	return predicate.GeneralSpec(sql.FieldEQ(FieldProjectUUID, v))
+}
+
+// ProjectUUIDNEQ applies the NEQ predicate on the "project_uuid" field.
+func ProjectUUIDNEQ(v uuid.UUID) predicate.GeneralSpec {
+	return predicate.GeneralSpec(sql.FieldNEQ(FieldProjectUUID, v))
+}
+
+// ProjectUUIDIn applies the In predicate on the "project_uuid" field.
+func ProjectUUIDIn(vs ...uuid.UUID) predicate.GeneralSpec {
+	return predicate.GeneralSpec(sql.FieldIn(FieldProjectUUID, vs...))
+}
+
+// ProjectUUIDNotIn applies the NotIn predicate on the "project_uuid" field.
+func ProjectUUIDNotIn(vs ...uuid.UUID) predicate.GeneralSpec {
+	return predicate.GeneralSpec(sql.FieldNotIn(FieldProjectUUID, vs...))
+}
+
+// ProjectUUIDGT applies the GT predicate on the "project_uuid" field.
+func ProjectUUIDGT(v uuid.UUID) predicate.GeneralSpec {
+	return predicate.GeneralSpec(sql.FieldGT(FieldProjectUUID, v))
+}
+
+// ProjectUUIDGTE applies the GTE predicate on the "project_uuid" field.
+func ProjectUUIDGTE(v uuid.UUID) predicate.GeneralSpec {
+	return predicate.GeneralSpec(sql.FieldGTE(FieldProjectUUID, v))
+}
+
+// ProjectUUIDLT applies the LT predicate on the "project_uuid" field.
+func ProjectUUIDLT(v uuid.UUID) predicate.GeneralSpec {
+	return predicate.GeneralSpec(sql.FieldLT(FieldProjectUUID, v))
+}
+
+// ProjectUUIDLTE applies the LTE predicate on the "project_uuid" field.
+func ProjectUUIDLTE(v uuid.UUID) predicate.GeneralSpec {
+	return predicate.GeneralSpec(sql.FieldLTE(FieldProjectUUID, v))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.
@@ -380,6 +425,29 @@ func DescriptionContainsFold(v string) predicate.GeneralSpec {
 	return predicate.GeneralSpec(sql.FieldContainsFold(FieldDescription, v))
 }
 
+// HasProject applies the HasEdge predicate on the "project" edge.
+func HasProject() predicate.GeneralSpec {
+	return predicate.GeneralSpec(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ProjectTable, ProjectColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasProjectWith applies the HasEdge predicate on the "project" edge with a given conditions (other predicates).
+func HasProjectWith(preds ...predicate.Project) predicate.GeneralSpec {
+	return predicate.GeneralSpec(func(s *sql.Selector) {
+		step := newProjectStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasService applies the HasEdge predicate on the "service" edge.
 func HasService() predicate.GeneralSpec {
 	return predicate.GeneralSpec(func(s *sql.Selector) {
@@ -449,21 +517,21 @@ func HasApispecWith(preds ...predicate.APISpec) predicate.GeneralSpec {
 	})
 }
 
-// HasProject applies the HasEdge predicate on the "project" edge.
-func HasProject() predicate.GeneralSpec {
+// HasPermissions applies the HasEdge predicate on the "permissions" edge.
+func HasPermissions() predicate.GeneralSpec {
 	return predicate.GeneralSpec(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, ProjectTable, ProjectColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, PermissionsTable, PermissionsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasProjectWith applies the HasEdge predicate on the "project" edge with a given conditions (other predicates).
-func HasProjectWith(preds ...predicate.Project) predicate.GeneralSpec {
+// HasPermissionsWith applies the HasEdge predicate on the "permissions" edge with a given conditions (other predicates).
+func HasPermissionsWith(preds ...predicate.UserGeneralSpecPermissions) predicate.GeneralSpec {
 	return predicate.GeneralSpec(func(s *sql.Selector) {
-		step := newProjectStep()
+		step := newPermissionsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

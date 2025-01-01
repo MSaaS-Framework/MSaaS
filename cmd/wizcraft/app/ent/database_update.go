@@ -6,7 +6,6 @@ import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/database"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/predicate"
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"context"
 	"errors"
@@ -92,36 +91,9 @@ func (du *DatabaseUpdate) SetService(s *Service) *DatabaseUpdate {
 	return du.SetServiceID(s.ID)
 }
 
-// SetProjectID sets the "project" edge to the Project entity by ID.
-func (du *DatabaseUpdate) SetProjectID(id uuid.UUID) *DatabaseUpdate {
-	du.mutation.SetProjectID(id)
-	return du
-}
-
-// SetNillableProjectID sets the "project" edge to the Project entity by ID if the given value is not nil.
-func (du *DatabaseUpdate) SetNillableProjectID(id *uuid.UUID) *DatabaseUpdate {
-	if id != nil {
-		du = du.SetProjectID(*id)
-	}
-	return du
-}
-
-// SetProject sets the "project" edge to the Project entity.
-func (du *DatabaseUpdate) SetProject(p *Project) *DatabaseUpdate {
-	return du.SetProjectID(p.ID)
-}
-
 // SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
 func (du *DatabaseUpdate) SetGeneralspecID(id int) *DatabaseUpdate {
 	du.mutation.SetGeneralspecID(id)
-	return du
-}
-
-// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
-func (du *DatabaseUpdate) SetNillableGeneralspecID(id *int) *DatabaseUpdate {
-	if id != nil {
-		du = du.SetGeneralspecID(*id)
-	}
 	return du
 }
 
@@ -138,12 +110,6 @@ func (du *DatabaseUpdate) Mutation() *DatabaseMutation {
 // ClearService clears the "service" edge to the Service entity.
 func (du *DatabaseUpdate) ClearService() *DatabaseUpdate {
 	du.mutation.ClearService()
-	return du
-}
-
-// ClearProject clears the "project" edge to the Project entity.
-func (du *DatabaseUpdate) ClearProject() *DatabaseUpdate {
-	du.mutation.ClearProject()
 	return du
 }
 
@@ -192,6 +158,9 @@ func (du *DatabaseUpdate) check() error {
 			return &ValidationError{Name: "db_type", err: fmt.Errorf(`ent: validator failed for field "Database.db_type": %w`, err)}
 		}
 	}
+	if du.mutation.GeneralspecCleared() && len(du.mutation.GeneralspecIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Database.generalspec"`)
+	}
 	return nil
 }
 
@@ -238,35 +207,6 @@ func (du *DatabaseUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(service.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if du.mutation.ProjectCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   database.ProjectTable,
-			Columns: []string{database.ProjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := du.mutation.ProjectIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   database.ProjectTable,
-			Columns: []string{database.ProjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -384,36 +324,9 @@ func (duo *DatabaseUpdateOne) SetService(s *Service) *DatabaseUpdateOne {
 	return duo.SetServiceID(s.ID)
 }
 
-// SetProjectID sets the "project" edge to the Project entity by ID.
-func (duo *DatabaseUpdateOne) SetProjectID(id uuid.UUID) *DatabaseUpdateOne {
-	duo.mutation.SetProjectID(id)
-	return duo
-}
-
-// SetNillableProjectID sets the "project" edge to the Project entity by ID if the given value is not nil.
-func (duo *DatabaseUpdateOne) SetNillableProjectID(id *uuid.UUID) *DatabaseUpdateOne {
-	if id != nil {
-		duo = duo.SetProjectID(*id)
-	}
-	return duo
-}
-
-// SetProject sets the "project" edge to the Project entity.
-func (duo *DatabaseUpdateOne) SetProject(p *Project) *DatabaseUpdateOne {
-	return duo.SetProjectID(p.ID)
-}
-
 // SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
 func (duo *DatabaseUpdateOne) SetGeneralspecID(id int) *DatabaseUpdateOne {
 	duo.mutation.SetGeneralspecID(id)
-	return duo
-}
-
-// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
-func (duo *DatabaseUpdateOne) SetNillableGeneralspecID(id *int) *DatabaseUpdateOne {
-	if id != nil {
-		duo = duo.SetGeneralspecID(*id)
-	}
 	return duo
 }
 
@@ -430,12 +343,6 @@ func (duo *DatabaseUpdateOne) Mutation() *DatabaseMutation {
 // ClearService clears the "service" edge to the Service entity.
 func (duo *DatabaseUpdateOne) ClearService() *DatabaseUpdateOne {
 	duo.mutation.ClearService()
-	return duo
-}
-
-// ClearProject clears the "project" edge to the Project entity.
-func (duo *DatabaseUpdateOne) ClearProject() *DatabaseUpdateOne {
-	duo.mutation.ClearProject()
 	return duo
 }
 
@@ -496,6 +403,9 @@ func (duo *DatabaseUpdateOne) check() error {
 		if err := database.DbTypeValidator(v); err != nil {
 			return &ValidationError{Name: "db_type", err: fmt.Errorf(`ent: validator failed for field "Database.db_type": %w`, err)}
 		}
+	}
+	if duo.mutation.GeneralspecCleared() && len(duo.mutation.GeneralspecIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Database.generalspec"`)
 	}
 	return nil
 }
@@ -560,35 +470,6 @@ func (duo *DatabaseUpdateOne) sqlSave(ctx context.Context) (_node *Database, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(service.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if duo.mutation.ProjectCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   database.ProjectTable,
-			Columns: []string{database.ProjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := duo.mutation.ProjectIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   database.ProjectTable,
-			Columns: []string{database.ProjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

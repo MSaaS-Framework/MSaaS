@@ -9,6 +9,7 @@ import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/predicate"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/usergeneralspecpermissions"
 	"context"
 	"errors"
 	"fmt"
@@ -42,6 +43,20 @@ func (gsu *GeneralSpecUpdate) SetUUID(u uuid.UUID) *GeneralSpecUpdate {
 func (gsu *GeneralSpecUpdate) SetNillableUUID(u *uuid.UUID) *GeneralSpecUpdate {
 	if u != nil {
 		gsu.SetUUID(*u)
+	}
+	return gsu
+}
+
+// SetProjectUUID sets the "project_uuid" field.
+func (gsu *GeneralSpecUpdate) SetProjectUUID(u uuid.UUID) *GeneralSpecUpdate {
+	gsu.mutation.SetProjectUUID(u)
+	return gsu
+}
+
+// SetNillableProjectUUID sets the "project_uuid" field if the given value is not nil.
+func (gsu *GeneralSpecUpdate) SetNillableProjectUUID(u *uuid.UUID) *GeneralSpecUpdate {
+	if u != nil {
+		gsu.SetProjectUUID(*u)
 	}
 	return gsu
 }
@@ -102,6 +117,17 @@ func (gsu *GeneralSpecUpdate) SetNillableDescription(s *string) *GeneralSpecUpda
 	return gsu
 }
 
+// SetProjectID sets the "project" edge to the Project entity by ID.
+func (gsu *GeneralSpecUpdate) SetProjectID(id uuid.UUID) *GeneralSpecUpdate {
+	gsu.mutation.SetProjectID(id)
+	return gsu
+}
+
+// SetProject sets the "project" edge to the Project entity.
+func (gsu *GeneralSpecUpdate) SetProject(p *Project) *GeneralSpecUpdate {
+	return gsu.SetProjectID(p.ID)
+}
+
 // SetServiceID sets the "service" edge to the Service entity by ID.
 func (gsu *GeneralSpecUpdate) SetServiceID(id uuid.UUID) *GeneralSpecUpdate {
 	gsu.mutation.SetServiceID(id)
@@ -159,28 +185,30 @@ func (gsu *GeneralSpecUpdate) SetApispec(a *APISpec) *GeneralSpecUpdate {
 	return gsu.SetApispecID(a.ID)
 }
 
-// SetProjectID sets the "project" edge to the Project entity by ID.
-func (gsu *GeneralSpecUpdate) SetProjectID(id uuid.UUID) *GeneralSpecUpdate {
-	gsu.mutation.SetProjectID(id)
+// AddPermissionIDs adds the "permissions" edge to the UserGeneralSpecPermissions entity by IDs.
+func (gsu *GeneralSpecUpdate) AddPermissionIDs(ids ...uuid.UUID) *GeneralSpecUpdate {
+	gsu.mutation.AddPermissionIDs(ids...)
 	return gsu
 }
 
-// SetNillableProjectID sets the "project" edge to the Project entity by ID if the given value is not nil.
-func (gsu *GeneralSpecUpdate) SetNillableProjectID(id *uuid.UUID) *GeneralSpecUpdate {
-	if id != nil {
-		gsu = gsu.SetProjectID(*id)
+// AddPermissions adds the "permissions" edges to the UserGeneralSpecPermissions entity.
+func (gsu *GeneralSpecUpdate) AddPermissions(u ...*UserGeneralSpecPermissions) *GeneralSpecUpdate {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
 	}
-	return gsu
-}
-
-// SetProject sets the "project" edge to the Project entity.
-func (gsu *GeneralSpecUpdate) SetProject(p *Project) *GeneralSpecUpdate {
-	return gsu.SetProjectID(p.ID)
+	return gsu.AddPermissionIDs(ids...)
 }
 
 // Mutation returns the GeneralSpecMutation object of the builder.
 func (gsu *GeneralSpecUpdate) Mutation() *GeneralSpecMutation {
 	return gsu.mutation
+}
+
+// ClearProject clears the "project" edge to the Project entity.
+func (gsu *GeneralSpecUpdate) ClearProject() *GeneralSpecUpdate {
+	gsu.mutation.ClearProject()
+	return gsu
 }
 
 // ClearService clears the "service" edge to the Service entity.
@@ -201,10 +229,25 @@ func (gsu *GeneralSpecUpdate) ClearApispec() *GeneralSpecUpdate {
 	return gsu
 }
 
-// ClearProject clears the "project" edge to the Project entity.
-func (gsu *GeneralSpecUpdate) ClearProject() *GeneralSpecUpdate {
-	gsu.mutation.ClearProject()
+// ClearPermissions clears all "permissions" edges to the UserGeneralSpecPermissions entity.
+func (gsu *GeneralSpecUpdate) ClearPermissions() *GeneralSpecUpdate {
+	gsu.mutation.ClearPermissions()
 	return gsu
+}
+
+// RemovePermissionIDs removes the "permissions" edge to UserGeneralSpecPermissions entities by IDs.
+func (gsu *GeneralSpecUpdate) RemovePermissionIDs(ids ...uuid.UUID) *GeneralSpecUpdate {
+	gsu.mutation.RemovePermissionIDs(ids...)
+	return gsu
+}
+
+// RemovePermissions removes "permissions" edges to UserGeneralSpecPermissions entities.
+func (gsu *GeneralSpecUpdate) RemovePermissions(u ...*UserGeneralSpecPermissions) *GeneralSpecUpdate {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return gsu.RemovePermissionIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -234,7 +277,18 @@ func (gsu *GeneralSpecUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (gsu *GeneralSpecUpdate) check() error {
+	if gsu.mutation.ProjectCleared() && len(gsu.mutation.ProjectIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "GeneralSpec.project"`)
+	}
+	return nil
+}
+
 func (gsu *GeneralSpecUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := gsu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(generalspec.Table, generalspec.Columns, sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt))
 	if ps := gsu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -245,6 +299,9 @@ func (gsu *GeneralSpecUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := gsu.mutation.UUID(); ok {
 		_spec.SetField(generalspec.FieldUUID, field.TypeUUID, value)
+	}
+	if value, ok := gsu.mutation.ProjectUUID(); ok {
+		_spec.SetField(generalspec.FieldProjectUUID, field.TypeUUID, value)
 	}
 	if value, ok := gsu.mutation.Name(); ok {
 		_spec.SetField(generalspec.FieldName, field.TypeString, value)
@@ -257,6 +314,35 @@ func (gsu *GeneralSpecUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := gsu.mutation.Description(); ok {
 		_spec.SetField(generalspec.FieldDescription, field.TypeString, value)
+	}
+	if gsu.mutation.ProjectCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   generalspec.ProjectTable,
+			Columns: []string{generalspec.ProjectColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := gsu.mutation.ProjectIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   generalspec.ProjectTable,
+			Columns: []string{generalspec.ProjectColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if gsu.mutation.ServiceCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -345,28 +431,44 @@ func (gsu *GeneralSpecUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if gsu.mutation.ProjectCleared() {
+	if gsu.mutation.PermissionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   generalspec.ProjectTable,
-			Columns: []string{generalspec.ProjectColumn},
+			Table:   generalspec.PermissionsTable,
+			Columns: []string{generalspec.PermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(usergeneralspecpermissions.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := gsu.mutation.ProjectIDs(); len(nodes) > 0 {
+	if nodes := gsu.mutation.RemovedPermissionsIDs(); len(nodes) > 0 && !gsu.mutation.PermissionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   generalspec.ProjectTable,
-			Columns: []string{generalspec.ProjectColumn},
+			Table:   generalspec.PermissionsTable,
+			Columns: []string{generalspec.PermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(usergeneralspecpermissions.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := gsu.mutation.PermissionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   generalspec.PermissionsTable,
+			Columns: []string{generalspec.PermissionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(usergeneralspecpermissions.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -404,6 +506,20 @@ func (gsuo *GeneralSpecUpdateOne) SetUUID(u uuid.UUID) *GeneralSpecUpdateOne {
 func (gsuo *GeneralSpecUpdateOne) SetNillableUUID(u *uuid.UUID) *GeneralSpecUpdateOne {
 	if u != nil {
 		gsuo.SetUUID(*u)
+	}
+	return gsuo
+}
+
+// SetProjectUUID sets the "project_uuid" field.
+func (gsuo *GeneralSpecUpdateOne) SetProjectUUID(u uuid.UUID) *GeneralSpecUpdateOne {
+	gsuo.mutation.SetProjectUUID(u)
+	return gsuo
+}
+
+// SetNillableProjectUUID sets the "project_uuid" field if the given value is not nil.
+func (gsuo *GeneralSpecUpdateOne) SetNillableProjectUUID(u *uuid.UUID) *GeneralSpecUpdateOne {
+	if u != nil {
+		gsuo.SetProjectUUID(*u)
 	}
 	return gsuo
 }
@@ -464,6 +580,17 @@ func (gsuo *GeneralSpecUpdateOne) SetNillableDescription(s *string) *GeneralSpec
 	return gsuo
 }
 
+// SetProjectID sets the "project" edge to the Project entity by ID.
+func (gsuo *GeneralSpecUpdateOne) SetProjectID(id uuid.UUID) *GeneralSpecUpdateOne {
+	gsuo.mutation.SetProjectID(id)
+	return gsuo
+}
+
+// SetProject sets the "project" edge to the Project entity.
+func (gsuo *GeneralSpecUpdateOne) SetProject(p *Project) *GeneralSpecUpdateOne {
+	return gsuo.SetProjectID(p.ID)
+}
+
 // SetServiceID sets the "service" edge to the Service entity by ID.
 func (gsuo *GeneralSpecUpdateOne) SetServiceID(id uuid.UUID) *GeneralSpecUpdateOne {
 	gsuo.mutation.SetServiceID(id)
@@ -521,28 +648,30 @@ func (gsuo *GeneralSpecUpdateOne) SetApispec(a *APISpec) *GeneralSpecUpdateOne {
 	return gsuo.SetApispecID(a.ID)
 }
 
-// SetProjectID sets the "project" edge to the Project entity by ID.
-func (gsuo *GeneralSpecUpdateOne) SetProjectID(id uuid.UUID) *GeneralSpecUpdateOne {
-	gsuo.mutation.SetProjectID(id)
+// AddPermissionIDs adds the "permissions" edge to the UserGeneralSpecPermissions entity by IDs.
+func (gsuo *GeneralSpecUpdateOne) AddPermissionIDs(ids ...uuid.UUID) *GeneralSpecUpdateOne {
+	gsuo.mutation.AddPermissionIDs(ids...)
 	return gsuo
 }
 
-// SetNillableProjectID sets the "project" edge to the Project entity by ID if the given value is not nil.
-func (gsuo *GeneralSpecUpdateOne) SetNillableProjectID(id *uuid.UUID) *GeneralSpecUpdateOne {
-	if id != nil {
-		gsuo = gsuo.SetProjectID(*id)
+// AddPermissions adds the "permissions" edges to the UserGeneralSpecPermissions entity.
+func (gsuo *GeneralSpecUpdateOne) AddPermissions(u ...*UserGeneralSpecPermissions) *GeneralSpecUpdateOne {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
 	}
-	return gsuo
-}
-
-// SetProject sets the "project" edge to the Project entity.
-func (gsuo *GeneralSpecUpdateOne) SetProject(p *Project) *GeneralSpecUpdateOne {
-	return gsuo.SetProjectID(p.ID)
+	return gsuo.AddPermissionIDs(ids...)
 }
 
 // Mutation returns the GeneralSpecMutation object of the builder.
 func (gsuo *GeneralSpecUpdateOne) Mutation() *GeneralSpecMutation {
 	return gsuo.mutation
+}
+
+// ClearProject clears the "project" edge to the Project entity.
+func (gsuo *GeneralSpecUpdateOne) ClearProject() *GeneralSpecUpdateOne {
+	gsuo.mutation.ClearProject()
+	return gsuo
 }
 
 // ClearService clears the "service" edge to the Service entity.
@@ -563,10 +692,25 @@ func (gsuo *GeneralSpecUpdateOne) ClearApispec() *GeneralSpecUpdateOne {
 	return gsuo
 }
 
-// ClearProject clears the "project" edge to the Project entity.
-func (gsuo *GeneralSpecUpdateOne) ClearProject() *GeneralSpecUpdateOne {
-	gsuo.mutation.ClearProject()
+// ClearPermissions clears all "permissions" edges to the UserGeneralSpecPermissions entity.
+func (gsuo *GeneralSpecUpdateOne) ClearPermissions() *GeneralSpecUpdateOne {
+	gsuo.mutation.ClearPermissions()
 	return gsuo
+}
+
+// RemovePermissionIDs removes the "permissions" edge to UserGeneralSpecPermissions entities by IDs.
+func (gsuo *GeneralSpecUpdateOne) RemovePermissionIDs(ids ...uuid.UUID) *GeneralSpecUpdateOne {
+	gsuo.mutation.RemovePermissionIDs(ids...)
+	return gsuo
+}
+
+// RemovePermissions removes "permissions" edges to UserGeneralSpecPermissions entities.
+func (gsuo *GeneralSpecUpdateOne) RemovePermissions(u ...*UserGeneralSpecPermissions) *GeneralSpecUpdateOne {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return gsuo.RemovePermissionIDs(ids...)
 }
 
 // Where appends a list predicates to the GeneralSpecUpdate builder.
@@ -609,7 +753,18 @@ func (gsuo *GeneralSpecUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (gsuo *GeneralSpecUpdateOne) check() error {
+	if gsuo.mutation.ProjectCleared() && len(gsuo.mutation.ProjectIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "GeneralSpec.project"`)
+	}
+	return nil
+}
+
 func (gsuo *GeneralSpecUpdateOne) sqlSave(ctx context.Context) (_node *GeneralSpec, err error) {
+	if err := gsuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(generalspec.Table, generalspec.Columns, sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt))
 	id, ok := gsuo.mutation.ID()
 	if !ok {
@@ -638,6 +793,9 @@ func (gsuo *GeneralSpecUpdateOne) sqlSave(ctx context.Context) (_node *GeneralSp
 	if value, ok := gsuo.mutation.UUID(); ok {
 		_spec.SetField(generalspec.FieldUUID, field.TypeUUID, value)
 	}
+	if value, ok := gsuo.mutation.ProjectUUID(); ok {
+		_spec.SetField(generalspec.FieldProjectUUID, field.TypeUUID, value)
+	}
 	if value, ok := gsuo.mutation.Name(); ok {
 		_spec.SetField(generalspec.FieldName, field.TypeString, value)
 	}
@@ -649,6 +807,35 @@ func (gsuo *GeneralSpecUpdateOne) sqlSave(ctx context.Context) (_node *GeneralSp
 	}
 	if value, ok := gsuo.mutation.Description(); ok {
 		_spec.SetField(generalspec.FieldDescription, field.TypeString, value)
+	}
+	if gsuo.mutation.ProjectCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   generalspec.ProjectTable,
+			Columns: []string{generalspec.ProjectColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := gsuo.mutation.ProjectIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   generalspec.ProjectTable,
+			Columns: []string{generalspec.ProjectColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if gsuo.mutation.ServiceCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -737,28 +924,44 @@ func (gsuo *GeneralSpecUpdateOne) sqlSave(ctx context.Context) (_node *GeneralSp
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if gsuo.mutation.ProjectCleared() {
+	if gsuo.mutation.PermissionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   generalspec.ProjectTable,
-			Columns: []string{generalspec.ProjectColumn},
+			Table:   generalspec.PermissionsTable,
+			Columns: []string{generalspec.PermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(usergeneralspecpermissions.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := gsuo.mutation.ProjectIDs(); len(nodes) > 0 {
+	if nodes := gsuo.mutation.RemovedPermissionsIDs(); len(nodes) > 0 && !gsuo.mutation.PermissionsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   generalspec.ProjectTable,
-			Columns: []string{generalspec.ProjectColumn},
+			Table:   generalspec.PermissionsTable,
+			Columns: []string{generalspec.PermissionsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(usergeneralspecpermissions.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := gsuo.mutation.PermissionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   generalspec.PermissionsTable,
+			Columns: []string{generalspec.PermissionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(usergeneralspecpermissions.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

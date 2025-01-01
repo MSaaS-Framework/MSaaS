@@ -17,6 +17,7 @@ import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/user"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/usergeneralspecpermissions"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
@@ -42,6 +43,8 @@ type Client struct {
 	Service *ServiceClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// UserGeneralSpecPermissions is the client for interacting with the UserGeneralSpecPermissions builders.
+	UserGeneralSpecPermissions *UserGeneralSpecPermissionsClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -59,6 +62,7 @@ func (c *Client) init() {
 	c.Project = NewProjectClient(c.config)
 	c.Service = NewServiceClient(c.config)
 	c.User = NewUserClient(c.config)
+	c.UserGeneralSpecPermissions = NewUserGeneralSpecPermissionsClient(c.config)
 }
 
 type (
@@ -149,14 +153,15 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:         ctx,
-		config:      cfg,
-		APISpec:     NewAPISpecClient(cfg),
-		Database:    NewDatabaseClient(cfg),
-		GeneralSpec: NewGeneralSpecClient(cfg),
-		Project:     NewProjectClient(cfg),
-		Service:     NewServiceClient(cfg),
-		User:        NewUserClient(cfg),
+		ctx:                        ctx,
+		config:                     cfg,
+		APISpec:                    NewAPISpecClient(cfg),
+		Database:                   NewDatabaseClient(cfg),
+		GeneralSpec:                NewGeneralSpecClient(cfg),
+		Project:                    NewProjectClient(cfg),
+		Service:                    NewServiceClient(cfg),
+		User:                       NewUserClient(cfg),
+		UserGeneralSpecPermissions: NewUserGeneralSpecPermissionsClient(cfg),
 	}, nil
 }
 
@@ -174,14 +179,15 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:         ctx,
-		config:      cfg,
-		APISpec:     NewAPISpecClient(cfg),
-		Database:    NewDatabaseClient(cfg),
-		GeneralSpec: NewGeneralSpecClient(cfg),
-		Project:     NewProjectClient(cfg),
-		Service:     NewServiceClient(cfg),
-		User:        NewUserClient(cfg),
+		ctx:                        ctx,
+		config:                     cfg,
+		APISpec:                    NewAPISpecClient(cfg),
+		Database:                   NewDatabaseClient(cfg),
+		GeneralSpec:                NewGeneralSpecClient(cfg),
+		Project:                    NewProjectClient(cfg),
+		Service:                    NewServiceClient(cfg),
+		User:                       NewUserClient(cfg),
+		UserGeneralSpecPermissions: NewUserGeneralSpecPermissionsClient(cfg),
 	}, nil
 }
 
@@ -212,6 +218,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.APISpec, c.Database, c.GeneralSpec, c.Project, c.Service, c.User,
+		c.UserGeneralSpecPermissions,
 	} {
 		n.Use(hooks...)
 	}
@@ -222,6 +229,7 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.APISpec, c.Database, c.GeneralSpec, c.Project, c.Service, c.User,
+		c.UserGeneralSpecPermissions,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -242,6 +250,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Service.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
+	case *UserGeneralSpecPermissionsMutation:
+		return c.UserGeneralSpecPermissions.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -364,22 +374,6 @@ func (c *APISpecClient) QueryService(as *APISpec) *ServiceQuery {
 			sqlgraph.From(apispec.Table, apispec.FieldID, id),
 			sqlgraph.To(service.Table, service.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, apispec.ServiceTable, apispec.ServiceColumn),
-		)
-		fromV = sqlgraph.Neighbors(as.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryProject queries the project edge of a APISpec.
-func (c *APISpecClient) QueryProject(as *APISpec) *ProjectQuery {
-	query := (&ProjectClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := as.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(apispec.Table, apispec.FieldID, id),
-			sqlgraph.To(project.Table, project.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, apispec.ProjectTable, apispec.ProjectColumn),
 		)
 		fromV = sqlgraph.Neighbors(as.driver.Dialect(), step)
 		return fromV, nil
@@ -552,22 +546,6 @@ func (c *DatabaseClient) QueryService(d *Database) *ServiceQuery {
 	return query
 }
 
-// QueryProject queries the project edge of a Database.
-func (c *DatabaseClient) QueryProject(d *Database) *ProjectQuery {
-	query := (&ProjectClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := d.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(database.Table, database.FieldID, id),
-			sqlgraph.To(project.Table, project.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, database.ProjectTable, database.ProjectColumn),
-		)
-		fromV = sqlgraph.Neighbors(d.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryGeneralspec queries the generalspec edge of a Database.
 func (c *DatabaseClient) QueryGeneralspec(d *Database) *GeneralSpecQuery {
 	query := (&GeneralSpecClient{config: c.config}).Query()
@@ -717,6 +695,22 @@ func (c *GeneralSpecClient) GetX(ctx context.Context, id int) *GeneralSpec {
 	return obj
 }
 
+// QueryProject queries the project edge of a GeneralSpec.
+func (c *GeneralSpecClient) QueryProject(gs *GeneralSpec) *ProjectQuery {
+	query := (&ProjectClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := gs.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(generalspec.Table, generalspec.FieldID, id),
+			sqlgraph.To(project.Table, project.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, generalspec.ProjectTable, generalspec.ProjectColumn),
+		)
+		fromV = sqlgraph.Neighbors(gs.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryService queries the service edge of a GeneralSpec.
 func (c *GeneralSpecClient) QueryService(gs *GeneralSpec) *ServiceQuery {
 	query := (&ServiceClient{config: c.config}).Query()
@@ -765,15 +759,15 @@ func (c *GeneralSpecClient) QueryApispec(gs *GeneralSpec) *APISpecQuery {
 	return query
 }
 
-// QueryProject queries the project edge of a GeneralSpec.
-func (c *GeneralSpecClient) QueryProject(gs *GeneralSpec) *ProjectQuery {
-	query := (&ProjectClient{config: c.config}).Query()
+// QueryPermissions queries the permissions edge of a GeneralSpec.
+func (c *GeneralSpecClient) QueryPermissions(gs *GeneralSpec) *UserGeneralSpecPermissionsQuery {
+	query := (&UserGeneralSpecPermissionsClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := gs.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(generalspec.Table, generalspec.FieldID, id),
-			sqlgraph.To(project.Table, project.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, generalspec.ProjectTable, generalspec.ProjectColumn),
+			sqlgraph.To(usergeneralspecpermissions.Table, usergeneralspecpermissions.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, generalspec.PermissionsTable, generalspec.PermissionsColumn),
 		)
 		fromV = sqlgraph.Neighbors(gs.driver.Dialect(), step)
 		return fromV, nil
@@ -914,63 +908,31 @@ func (c *ProjectClient) GetX(ctx context.Context, id uuid.UUID) *Project {
 	return obj
 }
 
-// QueryServices queries the services edge of a Project.
-func (c *ProjectClient) QueryServices(pr *Project) *ServiceQuery {
-	query := (&ServiceClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := pr.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(project.Table, project.FieldID, id),
-			sqlgraph.To(service.Table, service.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, project.ServicesTable, project.ServicesColumn),
-		)
-		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryDatabases queries the databases edge of a Project.
-func (c *ProjectClient) QueryDatabases(pr *Project) *DatabaseQuery {
-	query := (&DatabaseClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := pr.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(project.Table, project.FieldID, id),
-			sqlgraph.To(database.Table, database.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, project.DatabasesTable, project.DatabasesColumn),
-		)
-		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryApispecs queries the apispecs edge of a Project.
-func (c *ProjectClient) QueryApispecs(pr *Project) *APISpecQuery {
-	query := (&APISpecClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := pr.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(project.Table, project.FieldID, id),
-			sqlgraph.To(apispec.Table, apispec.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, project.ApispecsTable, project.ApispecsColumn),
-		)
-		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryGeneralspec queries the generalspec edge of a Project.
-func (c *ProjectClient) QueryGeneralspec(pr *Project) *GeneralSpecQuery {
+// QueryGeneralSpecs queries the general_specs edge of a Project.
+func (c *ProjectClient) QueryGeneralSpecs(pr *Project) *GeneralSpecQuery {
 	query := (&GeneralSpecClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := pr.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(project.Table, project.FieldID, id),
 			sqlgraph.To(generalspec.Table, generalspec.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, project.GeneralspecTable, project.GeneralspecColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, project.GeneralSpecsTable, project.GeneralSpecsColumn),
+		)
+		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUsers queries the users edge of a Project.
+func (c *ProjectClient) QueryUsers(pr *Project) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := pr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(project.Table, project.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, project.UsersTable, project.UsersPrimaryKey...),
 		)
 		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
 		return fromV, nil
@@ -1245,7 +1207,7 @@ func (c *UserClient) UpdateOne(u *User) *UserUpdateOne {
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *UserClient) UpdateOneID(id int) *UserUpdateOne {
+func (c *UserClient) UpdateOneID(id uuid.UUID) *UserUpdateOne {
 	mutation := newUserMutation(c.config, OpUpdateOne, withUserID(id))
 	return &UserUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
@@ -1262,7 +1224,7 @@ func (c *UserClient) DeleteOne(u *User) *UserDeleteOne {
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *UserClient) DeleteOneID(id int) *UserDeleteOne {
+func (c *UserClient) DeleteOneID(id uuid.UUID) *UserDeleteOne {
 	builder := c.Delete().Where(user.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
@@ -1279,17 +1241,49 @@ func (c *UserClient) Query() *UserQuery {
 }
 
 // Get returns a User entity by its id.
-func (c *UserClient) Get(ctx context.Context, id int) (*User, error) {
+func (c *UserClient) Get(ctx context.Context, id uuid.UUID) (*User, error) {
 	return c.Query().Where(user.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *UserClient) GetX(ctx context.Context, id int) *User {
+func (c *UserClient) GetX(ctx context.Context, id uuid.UUID) *User {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryPermissions queries the permissions edge of a User.
+func (c *UserClient) QueryPermissions(u *User) *UserGeneralSpecPermissionsQuery {
+	query := (&UserGeneralSpecPermissionsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(usergeneralspecpermissions.Table, usergeneralspecpermissions.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.PermissionsTable, user.PermissionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryProjects queries the projects edge of a User.
+func (c *UserClient) QueryProjects(u *User) *ProjectQuery {
+	query := (&ProjectClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(project.Table, project.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, user.ProjectsTable, user.ProjectsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.
@@ -1317,12 +1311,179 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 	}
 }
 
+// UserGeneralSpecPermissionsClient is a client for the UserGeneralSpecPermissions schema.
+type UserGeneralSpecPermissionsClient struct {
+	config
+}
+
+// NewUserGeneralSpecPermissionsClient returns a client for the UserGeneralSpecPermissions from the given config.
+func NewUserGeneralSpecPermissionsClient(c config) *UserGeneralSpecPermissionsClient {
+	return &UserGeneralSpecPermissionsClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `usergeneralspecpermissions.Hooks(f(g(h())))`.
+func (c *UserGeneralSpecPermissionsClient) Use(hooks ...Hook) {
+	c.hooks.UserGeneralSpecPermissions = append(c.hooks.UserGeneralSpecPermissions, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `usergeneralspecpermissions.Intercept(f(g(h())))`.
+func (c *UserGeneralSpecPermissionsClient) Intercept(interceptors ...Interceptor) {
+	c.inters.UserGeneralSpecPermissions = append(c.inters.UserGeneralSpecPermissions, interceptors...)
+}
+
+// Create returns a builder for creating a UserGeneralSpecPermissions entity.
+func (c *UserGeneralSpecPermissionsClient) Create() *UserGeneralSpecPermissionsCreate {
+	mutation := newUserGeneralSpecPermissionsMutation(c.config, OpCreate)
+	return &UserGeneralSpecPermissionsCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of UserGeneralSpecPermissions entities.
+func (c *UserGeneralSpecPermissionsClient) CreateBulk(builders ...*UserGeneralSpecPermissionsCreate) *UserGeneralSpecPermissionsCreateBulk {
+	return &UserGeneralSpecPermissionsCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *UserGeneralSpecPermissionsClient) MapCreateBulk(slice any, setFunc func(*UserGeneralSpecPermissionsCreate, int)) *UserGeneralSpecPermissionsCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &UserGeneralSpecPermissionsCreateBulk{err: fmt.Errorf("calling to UserGeneralSpecPermissionsClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*UserGeneralSpecPermissionsCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &UserGeneralSpecPermissionsCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for UserGeneralSpecPermissions.
+func (c *UserGeneralSpecPermissionsClient) Update() *UserGeneralSpecPermissionsUpdate {
+	mutation := newUserGeneralSpecPermissionsMutation(c.config, OpUpdate)
+	return &UserGeneralSpecPermissionsUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *UserGeneralSpecPermissionsClient) UpdateOne(ugsp *UserGeneralSpecPermissions) *UserGeneralSpecPermissionsUpdateOne {
+	mutation := newUserGeneralSpecPermissionsMutation(c.config, OpUpdateOne, withUserGeneralSpecPermissions(ugsp))
+	return &UserGeneralSpecPermissionsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *UserGeneralSpecPermissionsClient) UpdateOneID(id uuid.UUID) *UserGeneralSpecPermissionsUpdateOne {
+	mutation := newUserGeneralSpecPermissionsMutation(c.config, OpUpdateOne, withUserGeneralSpecPermissionsID(id))
+	return &UserGeneralSpecPermissionsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for UserGeneralSpecPermissions.
+func (c *UserGeneralSpecPermissionsClient) Delete() *UserGeneralSpecPermissionsDelete {
+	mutation := newUserGeneralSpecPermissionsMutation(c.config, OpDelete)
+	return &UserGeneralSpecPermissionsDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *UserGeneralSpecPermissionsClient) DeleteOne(ugsp *UserGeneralSpecPermissions) *UserGeneralSpecPermissionsDeleteOne {
+	return c.DeleteOneID(ugsp.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *UserGeneralSpecPermissionsClient) DeleteOneID(id uuid.UUID) *UserGeneralSpecPermissionsDeleteOne {
+	builder := c.Delete().Where(usergeneralspecpermissions.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &UserGeneralSpecPermissionsDeleteOne{builder}
+}
+
+// Query returns a query builder for UserGeneralSpecPermissions.
+func (c *UserGeneralSpecPermissionsClient) Query() *UserGeneralSpecPermissionsQuery {
+	return &UserGeneralSpecPermissionsQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeUserGeneralSpecPermissions},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a UserGeneralSpecPermissions entity by its id.
+func (c *UserGeneralSpecPermissionsClient) Get(ctx context.Context, id uuid.UUID) (*UserGeneralSpecPermissions, error) {
+	return c.Query().Where(usergeneralspecpermissions.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *UserGeneralSpecPermissionsClient) GetX(ctx context.Context, id uuid.UUID) *UserGeneralSpecPermissions {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a UserGeneralSpecPermissions.
+func (c *UserGeneralSpecPermissionsClient) QueryUser(ugsp *UserGeneralSpecPermissions) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ugsp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(usergeneralspecpermissions.Table, usergeneralspecpermissions.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, usergeneralspecpermissions.UserTable, usergeneralspecpermissions.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(ugsp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryGeneralSpec queries the general_spec edge of a UserGeneralSpecPermissions.
+func (c *UserGeneralSpecPermissionsClient) QueryGeneralSpec(ugsp *UserGeneralSpecPermissions) *GeneralSpecQuery {
+	query := (&GeneralSpecClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ugsp.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(usergeneralspecpermissions.Table, usergeneralspecpermissions.FieldID, id),
+			sqlgraph.To(generalspec.Table, generalspec.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, usergeneralspecpermissions.GeneralSpecTable, usergeneralspecpermissions.GeneralSpecColumn),
+		)
+		fromV = sqlgraph.Neighbors(ugsp.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *UserGeneralSpecPermissionsClient) Hooks() []Hook {
+	return c.hooks.UserGeneralSpecPermissions
+}
+
+// Interceptors returns the client interceptors.
+func (c *UserGeneralSpecPermissionsClient) Interceptors() []Interceptor {
+	return c.inters.UserGeneralSpecPermissions
+}
+
+func (c *UserGeneralSpecPermissionsClient) mutate(ctx context.Context, m *UserGeneralSpecPermissionsMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&UserGeneralSpecPermissionsCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&UserGeneralSpecPermissionsUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&UserGeneralSpecPermissionsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&UserGeneralSpecPermissionsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown UserGeneralSpecPermissions mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		APISpec, Database, GeneralSpec, Project, Service, User []ent.Hook
+		APISpec, Database, GeneralSpec, Project, Service, User,
+		UserGeneralSpecPermissions []ent.Hook
 	}
 	inters struct {
-		APISpec, Database, GeneralSpec, Project, Service, User []ent.Interceptor
+		APISpec, Database, GeneralSpec, Project, Service, User,
+		UserGeneralSpecPermissions []ent.Interceptor
 	}
 )

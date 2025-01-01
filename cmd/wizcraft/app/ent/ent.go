@@ -9,6 +9,7 @@ import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/user"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/usergeneralspecpermissions"
 	"context"
 	"errors"
 	"fmt"
@@ -78,12 +79,13 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			apispec.Table:     apispec.ValidColumn,
-			database.Table:    database.ValidColumn,
-			generalspec.Table: generalspec.ValidColumn,
-			project.Table:     project.ValidColumn,
-			service.Table:     service.ValidColumn,
-			user.Table:        user.ValidColumn,
+			apispec.Table:                    apispec.ValidColumn,
+			database.Table:                   database.ValidColumn,
+			generalspec.Table:                generalspec.ValidColumn,
+			project.Table:                    project.ValidColumn,
+			service.Table:                    service.ValidColumn,
+			user.Table:                       user.ValidColumn,
+			usergeneralspecpermissions.Table: usergeneralspecpermissions.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

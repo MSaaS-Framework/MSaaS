@@ -53,7 +53,6 @@ var Columns = []string{
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"general_spec_service",
-	"project_services",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).

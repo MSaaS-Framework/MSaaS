@@ -3,12 +3,10 @@
 package ent
 
 import (
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/apispec"
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/database"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/predicate"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/user"
 	"context"
 	"database/sql/driver"
 	"fmt"
@@ -24,15 +22,12 @@ import (
 // ProjectQuery is the builder for querying Project entities.
 type ProjectQuery struct {
 	config
-	ctx             *QueryContext
-	order           []project.OrderOption
-	inters          []Interceptor
-	predicates      []predicate.Project
-	withServices    *ServiceQuery
-	withDatabases   *DatabaseQuery
-	withApispecs    *APISpecQuery
-	withGeneralspec *GeneralSpecQuery
-	withFKs         bool
+	ctx              *QueryContext
+	order            []project.OrderOption
+	inters           []Interceptor
+	predicates       []predicate.Project
+	withGeneralSpecs *GeneralSpecQuery
+	withUsers        *UserQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -69,74 +64,8 @@ func (pq *ProjectQuery) Order(o ...project.OrderOption) *ProjectQuery {
 	return pq
 }
 
-// QueryServices chains the current query on the "services" edge.
-func (pq *ProjectQuery) QueryServices() *ServiceQuery {
-	query := (&ServiceClient{config: pq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := pq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := pq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(project.Table, project.FieldID, selector),
-			sqlgraph.To(service.Table, service.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, project.ServicesTable, project.ServicesColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryDatabases chains the current query on the "databases" edge.
-func (pq *ProjectQuery) QueryDatabases() *DatabaseQuery {
-	query := (&DatabaseClient{config: pq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := pq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := pq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(project.Table, project.FieldID, selector),
-			sqlgraph.To(database.Table, database.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, project.DatabasesTable, project.DatabasesColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryApispecs chains the current query on the "apispecs" edge.
-func (pq *ProjectQuery) QueryApispecs() *APISpecQuery {
-	query := (&APISpecClient{config: pq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := pq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := pq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(project.Table, project.FieldID, selector),
-			sqlgraph.To(apispec.Table, apispec.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, project.ApispecsTable, project.ApispecsColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryGeneralspec chains the current query on the "generalspec" edge.
-func (pq *ProjectQuery) QueryGeneralspec() *GeneralSpecQuery {
+// QueryGeneralSpecs chains the current query on the "general_specs" edge.
+func (pq *ProjectQuery) QueryGeneralSpecs() *GeneralSpecQuery {
 	query := (&GeneralSpecClient{config: pq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := pq.prepareQuery(ctx); err != nil {
@@ -149,7 +78,29 @@ func (pq *ProjectQuery) QueryGeneralspec() *GeneralSpecQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(project.Table, project.FieldID, selector),
 			sqlgraph.To(generalspec.Table, generalspec.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, project.GeneralspecTable, project.GeneralspecColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, project.GeneralSpecsTable, project.GeneralSpecsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryUsers chains the current query on the "users" edge.
+func (pq *ProjectQuery) QueryUsers() *UserQuery {
+	query := (&UserClient{config: pq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(project.Table, project.FieldID, selector),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, project.UsersTable, project.UsersPrimaryKey...),
 		)
 		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
 		return fromU, nil
@@ -344,62 +295,38 @@ func (pq *ProjectQuery) Clone() *ProjectQuery {
 		return nil
 	}
 	return &ProjectQuery{
-		config:          pq.config,
-		ctx:             pq.ctx.Clone(),
-		order:           append([]project.OrderOption{}, pq.order...),
-		inters:          append([]Interceptor{}, pq.inters...),
-		predicates:      append([]predicate.Project{}, pq.predicates...),
-		withServices:    pq.withServices.Clone(),
-		withDatabases:   pq.withDatabases.Clone(),
-		withApispecs:    pq.withApispecs.Clone(),
-		withGeneralspec: pq.withGeneralspec.Clone(),
+		config:           pq.config,
+		ctx:              pq.ctx.Clone(),
+		order:            append([]project.OrderOption{}, pq.order...),
+		inters:           append([]Interceptor{}, pq.inters...),
+		predicates:       append([]predicate.Project{}, pq.predicates...),
+		withGeneralSpecs: pq.withGeneralSpecs.Clone(),
+		withUsers:        pq.withUsers.Clone(),
 		// clone intermediate query.
 		sql:  pq.sql.Clone(),
 		path: pq.path,
 	}
 }
 
-// WithServices tells the query-builder to eager-load the nodes that are connected to
-// the "services" edge. The optional arguments are used to configure the query builder of the edge.
-func (pq *ProjectQuery) WithServices(opts ...func(*ServiceQuery)) *ProjectQuery {
-	query := (&ServiceClient{config: pq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	pq.withServices = query
-	return pq
-}
-
-// WithDatabases tells the query-builder to eager-load the nodes that are connected to
-// the "databases" edge. The optional arguments are used to configure the query builder of the edge.
-func (pq *ProjectQuery) WithDatabases(opts ...func(*DatabaseQuery)) *ProjectQuery {
-	query := (&DatabaseClient{config: pq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	pq.withDatabases = query
-	return pq
-}
-
-// WithApispecs tells the query-builder to eager-load the nodes that are connected to
-// the "apispecs" edge. The optional arguments are used to configure the query builder of the edge.
-func (pq *ProjectQuery) WithApispecs(opts ...func(*APISpecQuery)) *ProjectQuery {
-	query := (&APISpecClient{config: pq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	pq.withApispecs = query
-	return pq
-}
-
-// WithGeneralspec tells the query-builder to eager-load the nodes that are connected to
-// the "generalspec" edge. The optional arguments are used to configure the query builder of the edge.
-func (pq *ProjectQuery) WithGeneralspec(opts ...func(*GeneralSpecQuery)) *ProjectQuery {
+// WithGeneralSpecs tells the query-builder to eager-load the nodes that are connected to
+// the "general_specs" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *ProjectQuery) WithGeneralSpecs(opts ...func(*GeneralSpecQuery)) *ProjectQuery {
 	query := (&GeneralSpecClient{config: pq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	pq.withGeneralspec = query
+	pq.withGeneralSpecs = query
+	return pq
+}
+
+// WithUsers tells the query-builder to eager-load the nodes that are connected to
+// the "users" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *ProjectQuery) WithUsers(opts ...func(*UserQuery)) *ProjectQuery {
+	query := (&UserClient{config: pq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withUsers = query
 	return pq
 }
 
@@ -458,21 +385,12 @@ func (pq *ProjectQuery) prepareQuery(ctx context.Context) error {
 func (pq *ProjectQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Project, error) {
 	var (
 		nodes       = []*Project{}
-		withFKs     = pq.withFKs
 		_spec       = pq.querySpec()
-		loadedTypes = [4]bool{
-			pq.withServices != nil,
-			pq.withDatabases != nil,
-			pq.withApispecs != nil,
-			pq.withGeneralspec != nil,
+		loadedTypes = [2]bool{
+			pq.withGeneralSpecs != nil,
+			pq.withUsers != nil,
 		}
 	)
-	if pq.withGeneralspec != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, project.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Project).scanValues(nil, columns)
 	}
@@ -491,37 +409,24 @@ func (pq *ProjectQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Proj
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := pq.withServices; query != nil {
-		if err := pq.loadServices(ctx, query, nodes,
-			func(n *Project) { n.Edges.Services = []*Service{} },
-			func(n *Project, e *Service) { n.Edges.Services = append(n.Edges.Services, e) }); err != nil {
+	if query := pq.withGeneralSpecs; query != nil {
+		if err := pq.loadGeneralSpecs(ctx, query, nodes,
+			func(n *Project) { n.Edges.GeneralSpecs = []*GeneralSpec{} },
+			func(n *Project, e *GeneralSpec) { n.Edges.GeneralSpecs = append(n.Edges.GeneralSpecs, e) }); err != nil {
 			return nil, err
 		}
 	}
-	if query := pq.withDatabases; query != nil {
-		if err := pq.loadDatabases(ctx, query, nodes,
-			func(n *Project) { n.Edges.Databases = []*Database{} },
-			func(n *Project, e *Database) { n.Edges.Databases = append(n.Edges.Databases, e) }); err != nil {
-			return nil, err
-		}
-	}
-	if query := pq.withApispecs; query != nil {
-		if err := pq.loadApispecs(ctx, query, nodes,
-			func(n *Project) { n.Edges.Apispecs = []*APISpec{} },
-			func(n *Project, e *APISpec) { n.Edges.Apispecs = append(n.Edges.Apispecs, e) }); err != nil {
-			return nil, err
-		}
-	}
-	if query := pq.withGeneralspec; query != nil {
-		if err := pq.loadGeneralspec(ctx, query, nodes, nil,
-			func(n *Project, e *GeneralSpec) { n.Edges.Generalspec = e }); err != nil {
+	if query := pq.withUsers; query != nil {
+		if err := pq.loadUsers(ctx, query, nodes,
+			func(n *Project) { n.Edges.Users = []*User{} },
+			func(n *Project, e *User) { n.Edges.Users = append(n.Edges.Users, e) }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (pq *ProjectQuery) loadServices(ctx context.Context, query *ServiceQuery, nodes []*Project, init func(*Project), assign func(*Project, *Service)) error {
+func (pq *ProjectQuery) loadGeneralSpecs(ctx context.Context, query *GeneralSpecQuery, nodes []*Project, init func(*Project), assign func(*Project, *GeneralSpec)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[uuid.UUID]*Project)
 	for i := range nodes {
@@ -532,116 +437,83 @@ func (pq *ProjectQuery) loadServices(ctx context.Context, query *ServiceQuery, n
 		}
 	}
 	query.withFKs = true
-	query.Where(predicate.Service(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(project.ServicesColumn), fks...))
+	query.Where(predicate.GeneralSpec(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(project.GeneralSpecsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.project_services
+		fk := n.project_general_specs
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "project_services" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "project_general_specs" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "project_services" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "project_general_specs" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
 	return nil
 }
-func (pq *ProjectQuery) loadDatabases(ctx context.Context, query *DatabaseQuery, nodes []*Project, init func(*Project), assign func(*Project, *Database)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[uuid.UUID]*Project)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
+func (pq *ProjectQuery) loadUsers(ctx context.Context, query *UserQuery, nodes []*Project, init func(*Project), assign func(*Project, *User)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[uuid.UUID]*Project)
+	nids := make(map[uuid.UUID]map[*Project]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
 		if init != nil {
-			init(nodes[i])
+			init(node)
 		}
 	}
-	query.withFKs = true
-	query.Where(predicate.Database(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(project.DatabasesColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(project.UsersTable)
+		s.Join(joinT).On(s.C(user.FieldID), joinT.C(project.UsersPrimaryKey[0]))
+		s.Where(sql.InValues(joinT.C(project.UsersPrimaryKey[1]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(project.UsersPrimaryKey[1]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(uuid.UUID)}, values...), nil
+			}
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := *values[0].(*uuid.UUID)
+				inValue := *values[1].(*uuid.UUID)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*Project]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
+			}
+		})
+	})
+	neighbors, err := withInterceptors[[]*User](ctx, query, qr, query.inters)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.project_databases
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "project_databases" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		nodes, ok := nids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "project_databases" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected "users" node returned %v`, n.ID)
 		}
-		assign(node, n)
-	}
-	return nil
-}
-func (pq *ProjectQuery) loadApispecs(ctx context.Context, query *APISpecQuery, nodes []*Project, init func(*Project), assign func(*Project, *APISpec)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[uuid.UUID]*Project)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	query.withFKs = true
-	query.Where(predicate.APISpec(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(project.ApispecsColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.project_apispecs
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "project_apispecs" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "project_apispecs" returned %v for node %v`, *fk, n.ID)
-		}
-		assign(node, n)
-	}
-	return nil
-}
-func (pq *ProjectQuery) loadGeneralspec(ctx context.Context, query *GeneralSpecQuery, nodes []*Project, init func(*Project), assign func(*Project, *GeneralSpec)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*Project)
-	for i := range nodes {
-		if nodes[i].general_spec_project == nil {
-			continue
-		}
-		fk := *nodes[i].general_spec_project
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(generalspec.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "general_spec_project" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
+		for kn := range nodes {
+			assign(kn, n)
 		}
 	}
 	return nil

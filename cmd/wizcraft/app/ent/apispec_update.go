@@ -6,7 +6,6 @@ import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/apispec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/predicate"
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"context"
 	"errors"
@@ -50,49 +49,14 @@ func (asu *APISpecUpdate) SetServiceID(id uuid.UUID) *APISpecUpdate {
 	return asu
 }
 
-// SetNillableServiceID sets the "service" edge to the Service entity by ID if the given value is not nil.
-func (asu *APISpecUpdate) SetNillableServiceID(id *uuid.UUID) *APISpecUpdate {
-	if id != nil {
-		asu = asu.SetServiceID(*id)
-	}
-	return asu
-}
-
 // SetService sets the "service" edge to the Service entity.
 func (asu *APISpecUpdate) SetService(s *Service) *APISpecUpdate {
 	return asu.SetServiceID(s.ID)
 }
 
-// SetProjectID sets the "project" edge to the Project entity by ID.
-func (asu *APISpecUpdate) SetProjectID(id uuid.UUID) *APISpecUpdate {
-	asu.mutation.SetProjectID(id)
-	return asu
-}
-
-// SetNillableProjectID sets the "project" edge to the Project entity by ID if the given value is not nil.
-func (asu *APISpecUpdate) SetNillableProjectID(id *uuid.UUID) *APISpecUpdate {
-	if id != nil {
-		asu = asu.SetProjectID(*id)
-	}
-	return asu
-}
-
-// SetProject sets the "project" edge to the Project entity.
-func (asu *APISpecUpdate) SetProject(p *Project) *APISpecUpdate {
-	return asu.SetProjectID(p.ID)
-}
-
 // SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
 func (asu *APISpecUpdate) SetGeneralspecID(id int) *APISpecUpdate {
 	asu.mutation.SetGeneralspecID(id)
-	return asu
-}
-
-// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
-func (asu *APISpecUpdate) SetNillableGeneralspecID(id *int) *APISpecUpdate {
-	if id != nil {
-		asu = asu.SetGeneralspecID(*id)
-	}
 	return asu
 }
 
@@ -109,12 +73,6 @@ func (asu *APISpecUpdate) Mutation() *APISpecMutation {
 // ClearService clears the "service" edge to the Service entity.
 func (asu *APISpecUpdate) ClearService() *APISpecUpdate {
 	asu.mutation.ClearService()
-	return asu
-}
-
-// ClearProject clears the "project" edge to the Project entity.
-func (asu *APISpecUpdate) ClearProject() *APISpecUpdate {
-	asu.mutation.ClearProject()
 	return asu
 }
 
@@ -151,7 +109,21 @@ func (asu *APISpecUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (asu *APISpecUpdate) check() error {
+	if asu.mutation.ServiceCleared() && len(asu.mutation.ServiceIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "APISpec.service"`)
+	}
+	if asu.mutation.GeneralspecCleared() && len(asu.mutation.GeneralspecIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "APISpec.generalspec"`)
+	}
+	return nil
+}
+
 func (asu *APISpecUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := asu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(apispec.Table, apispec.Columns, sqlgraph.NewFieldSpec(apispec.FieldID, field.TypeUUID))
 	if ps := asu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -190,35 +162,6 @@ func (asu *APISpecUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(service.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if asu.mutation.ProjectCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   apispec.ProjectTable,
-			Columns: []string{apispec.ProjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := asu.mutation.ProjectIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   apispec.ProjectTable,
-			Columns: []string{apispec.ProjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -293,49 +236,14 @@ func (asuo *APISpecUpdateOne) SetServiceID(id uuid.UUID) *APISpecUpdateOne {
 	return asuo
 }
 
-// SetNillableServiceID sets the "service" edge to the Service entity by ID if the given value is not nil.
-func (asuo *APISpecUpdateOne) SetNillableServiceID(id *uuid.UUID) *APISpecUpdateOne {
-	if id != nil {
-		asuo = asuo.SetServiceID(*id)
-	}
-	return asuo
-}
-
 // SetService sets the "service" edge to the Service entity.
 func (asuo *APISpecUpdateOne) SetService(s *Service) *APISpecUpdateOne {
 	return asuo.SetServiceID(s.ID)
 }
 
-// SetProjectID sets the "project" edge to the Project entity by ID.
-func (asuo *APISpecUpdateOne) SetProjectID(id uuid.UUID) *APISpecUpdateOne {
-	asuo.mutation.SetProjectID(id)
-	return asuo
-}
-
-// SetNillableProjectID sets the "project" edge to the Project entity by ID if the given value is not nil.
-func (asuo *APISpecUpdateOne) SetNillableProjectID(id *uuid.UUID) *APISpecUpdateOne {
-	if id != nil {
-		asuo = asuo.SetProjectID(*id)
-	}
-	return asuo
-}
-
-// SetProject sets the "project" edge to the Project entity.
-func (asuo *APISpecUpdateOne) SetProject(p *Project) *APISpecUpdateOne {
-	return asuo.SetProjectID(p.ID)
-}
-
 // SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
 func (asuo *APISpecUpdateOne) SetGeneralspecID(id int) *APISpecUpdateOne {
 	asuo.mutation.SetGeneralspecID(id)
-	return asuo
-}
-
-// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
-func (asuo *APISpecUpdateOne) SetNillableGeneralspecID(id *int) *APISpecUpdateOne {
-	if id != nil {
-		asuo = asuo.SetGeneralspecID(*id)
-	}
 	return asuo
 }
 
@@ -352,12 +260,6 @@ func (asuo *APISpecUpdateOne) Mutation() *APISpecMutation {
 // ClearService clears the "service" edge to the Service entity.
 func (asuo *APISpecUpdateOne) ClearService() *APISpecUpdateOne {
 	asuo.mutation.ClearService()
-	return asuo
-}
-
-// ClearProject clears the "project" edge to the Project entity.
-func (asuo *APISpecUpdateOne) ClearProject() *APISpecUpdateOne {
-	asuo.mutation.ClearProject()
 	return asuo
 }
 
@@ -407,7 +309,21 @@ func (asuo *APISpecUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (asuo *APISpecUpdateOne) check() error {
+	if asuo.mutation.ServiceCleared() && len(asuo.mutation.ServiceIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "APISpec.service"`)
+	}
+	if asuo.mutation.GeneralspecCleared() && len(asuo.mutation.GeneralspecIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "APISpec.generalspec"`)
+	}
+	return nil
+}
+
 func (asuo *APISpecUpdateOne) sqlSave(ctx context.Context) (_node *APISpec, err error) {
+	if err := asuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(apispec.Table, apispec.Columns, sqlgraph.NewFieldSpec(apispec.FieldID, field.TypeUUID))
 	id, ok := asuo.mutation.ID()
 	if !ok {
@@ -463,35 +379,6 @@ func (asuo *APISpecUpdateOne) sqlSave(ctx context.Context) (_node *APISpec, err 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(service.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if asuo.mutation.ProjectCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   apispec.ProjectTable,
-			Columns: []string{apispec.ProjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := asuo.mutation.ProjectIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   apispec.ProjectTable,
-			Columns: []string{apispec.ProjectColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(project.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

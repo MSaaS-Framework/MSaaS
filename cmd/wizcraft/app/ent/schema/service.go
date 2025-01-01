@@ -26,9 +26,14 @@ func (Service) Fields() []ent.Field {
 
 func (Service) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("databases", Database.Type),       // 여러 Database와 연결
-		edge.To("apispec", APISpec.Type).Unique(), // 하나의 APISpec과 연결
+		// Database와의 관계 (1:N)
+		edge.To("databases", Database.Type),
+		// APISpec과의 관계 (1:1)
+		edge.To("apispec", APISpec.Type).Unique(),
+		// GeneralSpec과의 관계 (1:1)
 		edge.From("generalspec", GeneralSpec.Type).
-			Ref("service").Unique(), // 역참조 설정
+			Ref("service").
+			Unique().
+			Required(),
 	}
 }

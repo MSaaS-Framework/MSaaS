@@ -6,7 +6,6 @@ import (
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/apispec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/predicate"
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
 	"context"
 	"fmt"
@@ -27,7 +26,6 @@ type APISpecQuery struct {
 	inters          []Interceptor
 	predicates      []predicate.APISpec
 	withService     *ServiceQuery
-	withProject     *ProjectQuery
 	withGeneralspec *GeneralSpecQuery
 	withFKs         bool
 	// intermediate query (i.e. traversal path).
@@ -81,28 +79,6 @@ func (asq *APISpecQuery) QueryService() *ServiceQuery {
 			sqlgraph.From(apispec.Table, apispec.FieldID, selector),
 			sqlgraph.To(service.Table, service.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, apispec.ServiceTable, apispec.ServiceColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(asq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryProject chains the current query on the "project" edge.
-func (asq *APISpecQuery) QueryProject() *ProjectQuery {
-	query := (&ProjectClient{config: asq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := asq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := asq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(apispec.Table, apispec.FieldID, selector),
-			sqlgraph.To(project.Table, project.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, apispec.ProjectTable, apispec.ProjectColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(asq.driver.Dialect(), step)
 		return fromU, nil
@@ -325,7 +301,6 @@ func (asq *APISpecQuery) Clone() *APISpecQuery {
 		inters:          append([]Interceptor{}, asq.inters...),
 		predicates:      append([]predicate.APISpec{}, asq.predicates...),
 		withService:     asq.withService.Clone(),
-		withProject:     asq.withProject.Clone(),
 		withGeneralspec: asq.withGeneralspec.Clone(),
 		// clone intermediate query.
 		sql:  asq.sql.Clone(),
@@ -341,17 +316,6 @@ func (asq *APISpecQuery) WithService(opts ...func(*ServiceQuery)) *APISpecQuery 
 		opt(query)
 	}
 	asq.withService = query
-	return asq
-}
-
-// WithProject tells the query-builder to eager-load the nodes that are connected to
-// the "project" edge. The optional arguments are used to configure the query builder of the edge.
-func (asq *APISpecQuery) WithProject(opts ...func(*ProjectQuery)) *APISpecQuery {
-	query := (&ProjectClient{config: asq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	asq.withProject = query
 	return asq
 }
 
@@ -445,13 +409,12 @@ func (asq *APISpecQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*API
 		nodes       = []*APISpec{}
 		withFKs     = asq.withFKs
 		_spec       = asq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [2]bool{
 			asq.withService != nil,
-			asq.withProject != nil,
 			asq.withGeneralspec != nil,
 		}
 	)
-	if asq.withService != nil || asq.withProject != nil || asq.withGeneralspec != nil {
+	if asq.withService != nil || asq.withGeneralspec != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -478,12 +441,6 @@ func (asq *APISpecQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*API
 	if query := asq.withService; query != nil {
 		if err := asq.loadService(ctx, query, nodes, nil,
 			func(n *APISpec, e *Service) { n.Edges.Service = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := asq.withProject; query != nil {
-		if err := asq.loadProject(ctx, query, nodes, nil,
-			func(n *APISpec, e *Project) { n.Edges.Project = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -521,38 +478,6 @@ func (asq *APISpecQuery) loadService(ctx context.Context, query *ServiceQuery, n
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "service_apispec" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
-func (asq *APISpecQuery) loadProject(ctx context.Context, query *ProjectQuery, nodes []*APISpec, init func(*APISpec), assign func(*APISpec, *Project)) error {
-	ids := make([]uuid.UUID, 0, len(nodes))
-	nodeids := make(map[uuid.UUID][]*APISpec)
-	for i := range nodes {
-		if nodes[i].project_apispecs == nil {
-			continue
-		}
-		fk := *nodes[i].project_apispecs
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(project.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "project_apispecs" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

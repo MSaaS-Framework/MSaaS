@@ -3,11 +3,9 @@
 package ent
 
 import (
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/apispec"
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/database"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/generalspec"
 	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/project"
-	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/service"
+	"MSaaS-Framework/MSaaS/cmd/wizcraft/app/ent/user"
 	"context"
 	"fmt"
 
@@ -37,68 +35,34 @@ func (pc *ProjectCreate) SetNillableID(u *uuid.UUID) *ProjectCreate {
 	return pc
 }
 
-// AddServiceIDs adds the "services" edge to the Service entity by IDs.
-func (pc *ProjectCreate) AddServiceIDs(ids ...uuid.UUID) *ProjectCreate {
-	pc.mutation.AddServiceIDs(ids...)
+// AddGeneralSpecIDs adds the "general_specs" edge to the GeneralSpec entity by IDs.
+func (pc *ProjectCreate) AddGeneralSpecIDs(ids ...int) *ProjectCreate {
+	pc.mutation.AddGeneralSpecIDs(ids...)
 	return pc
 }
 
-// AddServices adds the "services" edges to the Service entity.
-func (pc *ProjectCreate) AddServices(s ...*Service) *ProjectCreate {
-	ids := make([]uuid.UUID, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
+// AddGeneralSpecs adds the "general_specs" edges to the GeneralSpec entity.
+func (pc *ProjectCreate) AddGeneralSpecs(g ...*GeneralSpec) *ProjectCreate {
+	ids := make([]int, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
 	}
-	return pc.AddServiceIDs(ids...)
+	return pc.AddGeneralSpecIDs(ids...)
 }
 
-// AddDatabaseIDs adds the "databases" edge to the Database entity by IDs.
-func (pc *ProjectCreate) AddDatabaseIDs(ids ...uuid.UUID) *ProjectCreate {
-	pc.mutation.AddDatabaseIDs(ids...)
+// AddUserIDs adds the "users" edge to the User entity by IDs.
+func (pc *ProjectCreate) AddUserIDs(ids ...uuid.UUID) *ProjectCreate {
+	pc.mutation.AddUserIDs(ids...)
 	return pc
 }
 
-// AddDatabases adds the "databases" edges to the Database entity.
-func (pc *ProjectCreate) AddDatabases(d ...*Database) *ProjectCreate {
-	ids := make([]uuid.UUID, len(d))
-	for i := range d {
-		ids[i] = d[i].ID
+// AddUsers adds the "users" edges to the User entity.
+func (pc *ProjectCreate) AddUsers(u ...*User) *ProjectCreate {
+	ids := make([]uuid.UUID, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
 	}
-	return pc.AddDatabaseIDs(ids...)
-}
-
-// AddApispecIDs adds the "apispecs" edge to the APISpec entity by IDs.
-func (pc *ProjectCreate) AddApispecIDs(ids ...uuid.UUID) *ProjectCreate {
-	pc.mutation.AddApispecIDs(ids...)
-	return pc
-}
-
-// AddApispecs adds the "apispecs" edges to the APISpec entity.
-func (pc *ProjectCreate) AddApispecs(a ...*APISpec) *ProjectCreate {
-	ids := make([]uuid.UUID, len(a))
-	for i := range a {
-		ids[i] = a[i].ID
-	}
-	return pc.AddApispecIDs(ids...)
-}
-
-// SetGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID.
-func (pc *ProjectCreate) SetGeneralspecID(id int) *ProjectCreate {
-	pc.mutation.SetGeneralspecID(id)
-	return pc
-}
-
-// SetNillableGeneralspecID sets the "generalspec" edge to the GeneralSpec entity by ID if the given value is not nil.
-func (pc *ProjectCreate) SetNillableGeneralspecID(id *int) *ProjectCreate {
-	if id != nil {
-		pc = pc.SetGeneralspecID(*id)
-	}
-	return pc
-}
-
-// SetGeneralspec sets the "generalspec" edge to the GeneralSpec entity.
-func (pc *ProjectCreate) SetGeneralspec(g *GeneralSpec) *ProjectCreate {
-	return pc.SetGeneralspecID(g.ID)
+	return pc.AddUserIDs(ids...)
 }
 
 // Mutation returns the ProjectMutation object of the builder.
@@ -179,60 +143,12 @@ func (pc *ProjectCreate) createSpec() (*Project, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = &id
 	}
-	if nodes := pc.mutation.ServicesIDs(); len(nodes) > 0 {
+	if nodes := pc.mutation.GeneralSpecsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   project.ServicesTable,
-			Columns: []string{project.ServicesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(service.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := pc.mutation.DatabasesIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.DatabasesTable,
-			Columns: []string{project.DatabasesColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(database.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := pc.mutation.ApispecsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   project.ApispecsTable,
-			Columns: []string{project.ApispecsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(apispec.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := pc.mutation.GeneralspecIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   project.GeneralspecTable,
-			Columns: []string{project.GeneralspecColumn},
+			Table:   project.GeneralSpecsTable,
+			Columns: []string{project.GeneralSpecsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(generalspec.FieldID, field.TypeInt),
@@ -241,7 +157,22 @@ func (pc *ProjectCreate) createSpec() (*Project, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.general_spec_project = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.mutation.UsersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   project.UsersTable,
+			Columns: project.UsersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

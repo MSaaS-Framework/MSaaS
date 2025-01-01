@@ -23,7 +23,6 @@ type Service struct {
 	// The values are being populated by the ServiceQuery when eager-loading is set.
 	Edges                ServiceEdges `json:"edges"`
 	general_spec_service *int
-	project_services     *uuid.UUID
 	selectValues         sql.SelectValues
 }
 
@@ -80,8 +79,6 @@ func (*Service) scanValues(columns []string) ([]any, error) {
 			values[i] = new(uuid.UUID)
 		case service.ForeignKeys[0]: // general_spec_service
 			values[i] = new(sql.NullInt64)
-		case service.ForeignKeys[1]: // project_services
-			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -109,13 +106,6 @@ func (s *Service) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				s.general_spec_service = new(int)
 				*s.general_spec_service = int(value.Int64)
-			}
-		case service.ForeignKeys[1]:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field project_services", values[i])
-			} else if value.Valid {
-				s.project_services = new(uuid.UUID)
-				*s.project_services = *value.S.(*uuid.UUID)
 			}
 		default:
 			s.selectValues.Set(columns[i], values[i])

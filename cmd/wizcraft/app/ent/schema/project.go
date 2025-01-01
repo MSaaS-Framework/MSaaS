@@ -25,10 +25,8 @@ func (Project) Fields() []ent.Field {
 // Edges of the Project.
 func (Project) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("services", Service.Type),
-		edge.To("databases", Database.Type),
-		edge.To("apispecs", APISpec.Type),
-		edge.From("generalspec", GeneralSpec.Type).
-			Ref("project").Unique(),
+		edge.To("general_specs", GeneralSpec.Type),
+		edge.From("users", User.Type).
+			Ref("projects"),
 	}
 }
