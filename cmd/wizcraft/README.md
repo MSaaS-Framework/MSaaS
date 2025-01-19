@@ -1,119 +1,63 @@
-# Working In microservice Zone: Craft a microservice project
+# wizcraft
+`**W**orking **I**n the microservice **Z**one: **CRAFT**ing Scalable Architectures`
 
-<p align="center"><img src="https://github.com/user-attachments/assets/8ed3f36c-1fce-4504-a0b6-a0c2f2fe751c" height="300px" width="300px" ></p>
+Backend API Server for MSaaS
 
----
+## Prerequisites
+- For Dev (택일)
+  - Docker / Docker-compose
+  - Go 1.23.2 or later
+- For Production ( To be decided )
 
-(문서 작업 중 … )
+## How to start?
 
-wizcraft tool 은 손쉽게 마이크로서비스 프로젝트를 관리하기 위한 CLI 도구 입니다. 
-
-docker container 기반으로 서비스를 배포할 수 있고, 서비스 별 데이터베이스와 스키마 그리고 API 명세를 관리할 수 있습니다.
-
----
-
-```mermaid
-%%{init: {'theme': 'default', 'themeVariables': { 'nodeBorder': '#005792', 'mainBkg': '#c9d7e4', 'nodeTextColor': '#274059', 'fontFamily': 'Helvetica, Arial, sans-serif', 'fontSize': '16px'}}}%%
-flowchart LR
-    A[wizcraft] --CLI command--> B(project)
-    B -- Create --> C{Resource}
-    B -- Delete --> C
-    B -- Get --> C
-    B -- Update --> C
-    C -- Service --> D[Manage Service layout]
-    C -- Database --> E[Manage Datadase for service and Schema relation]
-    C -- API spec --> F[Manage API spec for service]
-    C -- etc --> G[Let's make MSaaS more magnificent!]
-```
-
----
-
-### 0. `wizcraft project`
-
+### 1. Clone the repository
 ```bash
-# setup cli to watch project
-$ wizcraft project on [project name]
--> wizcraft handle [project name]
-if you change the project of MSaaS, Please type command again for different project.
-
-# get projects status
-$ wizcraft project get [project name]
--> Status of project [project name] ...
-[count of microservice on project] services configured
-- healthy running : [count of healthy status] 
-- unhealthy running : [count of unhealthy status]
-
-[count of Database on project] databases configured
-- healthy running : [count of healthy status] 
-- unhealthy running : [count of unhealthy status]
-
-...
-
-# change project default setting
-$ wizcraft project set -f config.yaml
+$ git clone [git-repo-url]
+$ cd MSaaS_back
 ```
 
-### 1. `wizcraft create service [service name]`
+#### setup .env
+- create .env file
+    ```bash
+    # This is the local path where the microservices repository created and the database data saved.
+    $ mkdir -p /home/user/msaas/db-volume /home/user/msaas/projects-volume
+    $ vi .env
+    ```
+- .env example
+    ```text
+    POSTGRES_USER=root
+    POSTGRES_PASSWORD=admin123
+    POSTGRES_DB=msaas
+    POSTGRES_HOST=localhost
+    POSTGRES_PORT=5432
+    POSTGRES_VOLUME=/home/user/msaas/db-volume
+    WIZCRAFT_PORT=8080
+    WIZCRAFT_VOLUME=/home/user/msaas/projects-volume
+    ```
 
+### 2.1. Run the server by Docker-compose
+#### dev mode (supporting hot-reload)
+백엔드 코드 변경 시 반영됩니다.
+- 생성
 ```bash
-# service is 
-
-$ wizcraft create service [service name]
--> service [service name] is created on [project name] ...
-project saves on path [localpath]
-If you want to more details, please visit UI console.
-
-$ wizcraft get service layout [service name]
-
-[service name]/
-│
-├── services/
-│   ├── service1/
-├── main.go
-├── Dockerfile
-├── go.mod
-├── go.sum
-└── ...
-
-$ wizcraft get service metric [service name]
-
-CPU : [number of cpu rate of service] (%) 
-Mem : [number of memory usage] (MB/GB)
+$ docker compose -f docker-compose.dev.yml up -d
 ```
-
-options :
-
-| short ( - o ) | long ( -- option ) | type (string, int , … ) | example |
-| --- | --- | --- | --- |
-| p | path | string | project local path (ex: -p /root/my_project) |
-|  |  |  |  |
-
-### 2. `wizcraft create database [service name]`
-
+- 종료
 ```bash
-# wizcraft use 'ent. An entity framework for Go' (https://entgo.io/) for manage database system
-
-$ wizcraft create database [service name]
--> postgresql database created for [service name]
-Please check your service repository 
+$ docker compose -f docker-compose.dev.yml down
 ```
-
-| short ( - o ) | long ( -- option ) | type (string, int , … ) | example |
-| --- | --- | --- | --- |
-| s | source | string | kind of database (ex: postgresql, mysql, … ) |
-| f | file | string | yaml config file (ex: config.yaml) |
-
-### 3. `wizcraft create apispec [service name]`
-
+- 동작 확인
 ```bash
-# wizcraft use OpenApi 3.0 for managing apispec of service 
-# If you create API spec in yaml file, then wizcraft automatically generate OpenApi docs and go files
-# Supported API method is JSON & gRPC 
-
-$ wizcraft create api [service name]
+$ docker ps -a
+$ curl localhost:${WIZCRAFT_PORT}
 ```
 
-| short ( - o ) | long ( -- option ) | type (string, int , … ) | example |
-| --- | --- | --- | --- |
-| m | method | string | json or gRPC |
-|  |  |  |  |
+#### static dev version
+백엔드 코드 변경 시 반영되지 않습니다.
+```bash
+$ docker compose -f docker-compose.yml up -d
+$ docker ps -a
+```
+
+### 2.2. Run the server by Go

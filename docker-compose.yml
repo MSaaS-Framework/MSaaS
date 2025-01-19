@@ -1,0 +1,43 @@
+version: '3'
+services:
+  postgresql:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    networks:
+      - msaas_network
+    ports:
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+    volumes:
+      - ${POSTGRES_VOLUME}:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U root" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  wizcraft:
+    build:
+      context: .
+      dockerfile: ./cmd/wizcraft/Dockerfile
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: postgresql
+      POSTGRES_PORT: ${POSTGRES_PORT}
+    volumes:
+      - ${WIZCRAFT_VOLUME}:/msaas
+    networks:
+      - msaas_network
+    ports:
+      - "${WIZCRAFT_PORT}:${WIZCRAFT_PORT}"
+
+networks:
+  msaas_network:
+    driver: bridge # 기본값이 bridge이므로 명시적 설정은 선택 사항입니다.
