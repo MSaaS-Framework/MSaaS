@@ -1,5 +1,5 @@
 # wizcraft
-`**W**orking **I**n the microservice **Z**one: **CRAFT**ing Scalable Architectures`
+**W**orking **I**n the microservice **Z**one: **CRAFT**ing Scalable Architectures
 
 Backend API Server for MSaaS
 
