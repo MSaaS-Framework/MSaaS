@@ -93,8 +93,6 @@ func StartServer() {
 	password := os.Getenv("POSTGRES_PASSWORD")
 	webPort := os.Getenv("WIZCRAFT_PORT")
 
-	println(host, dbPort, user, dbname, password, webPort)
-
 	// ent 초기화 - 추후에 env를 사용하여 데이터를 가져오도록 수정
 	// PostgreSQL 연결 문자열을 구성합니다.
 	postgresDSN := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
